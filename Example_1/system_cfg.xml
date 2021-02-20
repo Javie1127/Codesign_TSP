@@ -17,6 +17,7 @@
     <Rician_direct_radar>0.1</Rician_direct_radar>
     <K_Rician_SI>1</K_Rician_SI><!-- Self interference-->
     <Path_Loss>1</Path_Loss>
+    <theta_Bt>45</theta_Bt> <!-- in degree -->
 </Channel_Modeling>
 <Algorithms>
     <WMMSE_MRMC_Iterations>8</WMMSE_MRMC_Iterations><!-- iota_max--> 
@@ -45,6 +46,7 @@
     </FD>
     <DL>
         <isEnabled>0</isEnabled>
+        <isCollaborationEnabled>1</isCollaborationEnabled>
         <Num_DL_UE>8</Num_DL_UE>
         <Num_UL_UE>0</Num_UL_UE>
     </DL>
