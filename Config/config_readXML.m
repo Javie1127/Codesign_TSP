@@ -4,8 +4,14 @@
 % systemCfg = pruneXMLstruct(tmpStruct.SystemCfg);
 
 rng(systemCfg.SLS_Top_Cfg.RAND_SEED);
+radar.Tx =systemCfg.Num_Radar_Txs;
+radar.RX =systemCfg.Num_Radar_Rxs;
 num_drops=systemCfg.SLS_Top_Cfg.NUM_DROPS;
-num_iter=systemCfg.SLS_Top_Cfg.NUM_FADING_REALIZATIONS;
+num_iter = systemCfg.SLS_Top_Cfg.NUM_FADING_REALIZATIONS;
+radar.codelength = systemCfg.SLS_Top_Cfg.Num_PRI;
+radar.num_range_cell = systemCfg.SLS_Top_Cfg.Num_Range_Cell;
+
+
 
 deployment_model=systemCfg.NetworkLayout.LayoutModel;
 
