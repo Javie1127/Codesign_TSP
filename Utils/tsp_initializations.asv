@@ -74,21 +74,27 @@ elseif systemCfg.Cases.UL.isEnabled
         radar.alpha_r = (1-0.2*fdcomm.UL_num)/radar.Rx*ones(radar.Rx,1);
     end
 end
-
+JH = cell(radar.codelength,1);
 if systemCfg.Cases.DL.isCollaborationEnabled || systemCfg.Cases.FD.isCollaborationEnabled
     radar_comm.Jr = [eye(radar.Tx);zeros(fdcomm.BSTx,radar.Tx)];
     radar_comm.JB = [zeros(radar.Tx,fdcomm.BSTx);eye(fdcomm.BSTx)];  
     M = radar.Tx + fdcomm.BSTx;
+    for k = 1:radar.codelength
+        if k == 1
+            JH{k,1} = blkdiag(eye(M),zeros((radar.codelength-k)*M,M));
+        elseif k == radar.codelength
+            JH{k,1} = blkdiag(zeros((k-1)*M,M),eye(M),zeros((radar.codelength-k)*M,M));
+        else
+            JH{k,1} = blkdiag(zeros((k-1)*M,M),eye(M),zeros((radar.codelength-k)*M,M));
+    end
 else
     radar_comm.Jr = eye(radar.Tx);
     radar_comm.JB = 0;
     M = radar.Tx;
+    for k = 1:radar.codelength
+        JH{k,1} = blkdiag(zeros((k-1)*M,M),eye(M),zeros((radar.codelength-k)*M,M));
+    end
 end
-JH = cell(radar.codelength,1);
-for k = 1:radar.codelength
-       JH{k,1} = [zeros((k-1)*M,M);eye(M);zeros((radar.codelength-k)*M,M)];
-end
-radar_comm.JH = JH;
 fdcomm.pathloss = systemCfg.Channel_Modeling.Path_Loss;
 fdcomm.K_factor = systemCfg.Channel_Modeling.K_Rician_SI;
 fdcomm.UL_pathloss = systemCfg.Powers.SNR_UL;

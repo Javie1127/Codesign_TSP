@@ -82,9 +82,8 @@ if fdcomm.DL_num>0 % DL is enabled
             S_t_K(:,k) = s_t_k;
             S_t_cell{k,1} =s_t_k.';
         end
-        % https://www.mathworks.com/matlabcentral/answers/46316-sparse-block-diagonal-matrix
-        S_tr = blkdiag(S_t_cell{:}); 
-        cov.Str = S_tr;
+        S_t = blkdiag(S_t_cell{:});
+        cov.St = S_t;
         R_Btr = zeros(K,K,Nr);
         R_tr = zeros(K,K,Nr);
         Sigma_Bt_Nr = radar_comm.Sigma_Bt_Nr;

@@ -100,12 +100,12 @@ for mr = 1:Mr
     A_ini(:,mr) = sqrt(P_k/K);
 end
 radar.codematrix = A_ini;
-S_tr_cell = cell(K,1);
+S_tr = cell(K,1);
 for k = 1:K
-    S_tr_cell{k,1} = A_ini(k,:);
+    S_tr{k,1} = A_ini(k,:);
 end
-S_tr = blkdiag(S_tr_cell{:});
-cov.S_tr = S_tr;
+
+
 %% Initializing the covariance matrices
 cov = tsp_covmat_rev(fdcomm,radar,radar_comm,cov);
 %% Initializing the MMSE matrices
