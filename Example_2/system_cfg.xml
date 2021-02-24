@@ -20,25 +20,25 @@
     <theta_Bt>45</theta_Bt> <!-- in degree -->
 </Channel_Modeling>
 <Algorithms>
-    <WMMSE_MRMC_Iterations>7</WMMSE_MRMC_Iterations><!-- iota_max--> 
+    <WMMSE_MRMC_Iterations>8</WMMSE_MRMC_Iterations><!-- iota_max--> 
     <Subgradient_Iterations>7</Subgradient_Iterations><!-- t_max-->
     <BCD_AP_MRMC_Iterations>16</BCD_AP_MRMC_Iterations><!-- ell_max-->
 </Algorithms>
 <Antennas>
     <Num_UE_Antennas>2</Num_UE_Antennas>
     <Num_BS_Antennas>8</Num_BS_Antennas>
-    <Num_Radar_Txs>2</Num_Radar_Txs>
-    <Num_Radar_Rxs>2</Num_Radar_Rxs>
+    <Num_Radar_Txs>4</Num_Radar_Txs>
+    <Num_Radar_Rxs>4</Num_Radar_Rxs>
 </Antennas>
 <Powers>
-    <SNR_DL>15</SNR_DL><!-- in dB--> 
-    <SNR_UL>15</SNR_UL><!-- in dB-->  
+    <SNR_DL>13</SNR_DL><!-- in dB--> 
+    <SNR_UL>13</SNR_UL><!-- in dB-->  
     <CNR>40</CNR>
     <SNR_radar>50</SNR_radar>
     <radar_PAR>2</radar_PAR><!-- gamma -->
 </Powers>
 <Rates>
-    <UL>1.5</UL> <!--in bits/s/Hz-->
+    <UL>0.5</UL> <!--in Mbps-->
     <DL>2</DL>
 </Rates>
 <Radar_Comm_symbols>
@@ -50,8 +50,8 @@
     <FD>
         <isEnabled>1</isEnabled>
         <isCollaborationEnabled>1</isCollaborationEnabled>
-        <Num_DL_UE>2</Num_DL_UE>
-        <Num_UL_UE>2</Num_UL_UE>  
+        <Num_DL_UE>4</Num_DL_UE>
+        <Num_UL_UE>4</Num_UL_UE>  
     </FD>
     <DL>
         <isEnabled>0</isEnabled>

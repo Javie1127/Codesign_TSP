@@ -1,0 +1,5 @@
+Convergence: 
+K = 8;
+N = 32;
+
+Random_Initialization_Radar_Weights

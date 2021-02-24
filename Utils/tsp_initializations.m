@@ -9,7 +9,7 @@ radar.K_factor = systemCfg.Channel_Modeling.K_Rician_radar;
 radar.Rician_direct = systemCfg.Channel_Modeling.Rician_direct_radar;
 radar.SNR = systemCfg.Powers.SNR_radar;
 radar.CNR = systemCfg.Powers.CNR;
-radar.PAR = systemCfg.Powers.radar_PAR;
+radar.gamma_r = systemCfg.Powers.radar_PAR*ones(radar.Tx,1);
 %% FD-only parameters
 fdcomm.BSTx = systemCfg.Antennas.Num_BS_Antennas;
 fdcomm.BSRx = systemCfg.Antennas.Num_BS_Antennas;
@@ -17,73 +17,48 @@ fdcomm.UL_SNR = systemCfg.Powers.SNR_UL;
 fdcomm.DL_SNR = systemCfg.Powers.SNR_DL;
 fdcomm.Weights = systemCfg.Cases.Weights;
 fdcomm.Initializations = systemCfg.Cases.Initializations;
+
 if systemCfg.Cases.FD.isEnabled
     fdcomm.UL_num = systemCfg.Cases.FD.Num_UL_UE;
     fdcomm.DL_num = systemCfg.Cases.FD.Num_DL_UE;
-    fdcomm.UL_UE_Ant = systemCfg.Antennas.Num_UE_Antennas*ones(fdcomm.UL_num,1);
-    fdcomm.DL_UE_Ant = systemCfg.Antennas.Num_UE_Antennas*ones(fdcomm.DL_num,1);
-    fdcomm.ULstream_num = fdcomm.UL_UE_Ant;
-    fdcomm.DLstream_num = fdcomm.DL_UE_Ant;
-    fdcomm.theta_BT = systemCfg.Channel_Modeling.theta_Bt;
-    %% Initializing Weights
-    if strcmp(systemCfg.Cases.Weights,'Uniform')
-        fdcomm.alpha_DL = 1/(fdcomm.UL_num+fdcomm.DL_num+radar.Rx)*ones(fdcomm.DL_num);
-        fdcomm.alpha_UL = 1/(fdcomm.UL_num+fdcomm.DL_num+radar.Rx)*ones(fdcomm.UL_num);
-        radar.alpha_r = 1/(fdcomm.UL_num+fdcomm.DL_num+radar.Rx)*ones(radar.Rx);
-    elseif strcmp(systemCfg.Cases.Weights,'Radar')
-        fdcomm.alpha_UL = 0.1*ones(fdcomm.UL_num,1);
-        fdcomm.alpha_DL = 0.05*ones(fdcomm.DL_num,1);
-        radar.alpha_r = (1-0.1*fdcomm.UL_num-0.05*fdcomm.DL_num)/radar.Rx*ones(radar.Rx,1);
-    end
     radar_comm.isCollaborate = systemCfg.Cases.FD.isCollaborationEnabled;
-  
 elseif systemCfg.Cases.DL.isEnabled
     fdcomm.UL_num = systemCfg.Cases.DL.Num_UL_UE;
     fdcomm.DL_num = systemCfg.Cases.DL.Num_DL_UE;
-    fdcomm.DL_UE_Ant = systemCfg.Antennas.Num_UE_Antennas*ones(fdcomm.DL_num,1);
-    fdcomm.UL_UE_Ant = 0;
-    fdcomm.DLstream_num = fdcomm.DL_UE_Ant;
     radar_comm.isCollaborate = systemCfg.Cases.DL.isCollaborationEnabled;
-    fdcomm.theta_BT = systemCfg.Channel_Modeling.theta_Bt;
-    %% Initializing Weights
-    if strcmp(systemCfg.Cases.Weights,'Uniform')
-        fdcomm.alpha_DL = 1/(fdcomm.DL_num+radar.Rx)*ones(fdcomm.DL_num);
-        fdcomm.alpha_UL = 0;
-        radar.alpha_r = 1/(fdcomm.DL_num+radar.Rx)*ones(radar.Rx);
-    elseif strcmp(systemCfg.Cases.Weights,'Radar')
-        fdcomm.alpha_DL = 0.2*ones(fdcomm.DL_num,1);
-        radar.alpha_r = (1-0.2*fdcomm.DL_num)/radar.Rx*ones(radar.Rx,1);
-    end
-    radar_comm.Jr = [eye(radar.Tx);zeros(fdcomm.BSTx,radar.Tx)];
-    radar_comm.JB = [zeros(radar.Tx,fdcomm.BSTx);eye(radar.Tx)];
 elseif systemCfg.Cases.UL.isEnabled
     fdcomm.UL_num = systemCfg.Cases.UL.Num_UL_UE;
     fdcomm.DL_num = systemCfg.Cases.UL.Num_DL_UE;
-    fdcomm.DL_UE_Ant = 0;
-    fdcomm.UL_UE_Ant = systemCfg.Antennas.Num_UE_Antennas*ones(fdcomm.UL_num,1);
-    fdcomm.ULstream_num = fdcomm.UL_UE_Ant;
     radar_comm.isCollaborate = 0;
-    %% Initializing Weights
-    if strcmp(systemCfg.Cases.Weights,'Uniform')
-        fdcomm.alpha_DL = 0;
-        fdcomm.alpha_UL = 1/(fdcomm.UL_num+radar.Rx)*ones(fdcomm.UL_num);
-        radar.alpha_r = 1/(fdcomm.UL_num+radar.Rx)*ones(radar.Rx);
-    elseif strcmp(systemCfg.Cases.Weights,'Radar')
-        fdcomm.alpha_UL = 0.2*ones(fdcomm.UL_num,1);
-        fdcomm.alpha_DL = 0;
-        radar.alpha_r = (1-0.2*fdcomm.UL_num)/radar.Rx*ones(radar.Rx,1);
-    end
 end
 
-if systemCfg.Cases.DL.isCollaborationEnabled || systemCfg.Cases.FD.isCollaborationEnabled
+fdcomm.UL_UE_Ant = systemCfg.Antennas.Num_UE_Antennas*ones(fdcomm.UL_num,1);
+fdcomm.DL_UE_Ant = systemCfg.Antennas.Num_UE_Antennas*ones(fdcomm.DL_num,1);
+fdcomm.ULstream_num = fdcomm.UL_UE_Ant;
+fdcomm.DLstream_num = fdcomm.DL_UE_Ant;
+fdcomm.theta_BT = systemCfg.Channel_Modeling.theta_Bt;
+%% Initializing Weights
+if strcmp(systemCfg.Cases.Weights,'Uniform')
+    fdcomm.alpha_DL = 1/(fdcomm.UL_num+fdcomm.DL_num+radar.Rx)*ones(fdcomm.DL_num,1);
+    fdcomm.alpha_UL = 1/(fdcomm.UL_num+fdcomm.DL_num+radar.Rx)*ones(fdcomm.UL_num,1);
+    radar.alpha_r = 1/(fdcomm.UL_num+fdcomm.DL_num+radar.Rx)*ones(radar.Rx,1);
+elseif strcmp(systemCfg.Cases.Weights,'Radar')
+    fdcomm.alpha_UL = 0.1*ones(fdcomm.UL_num,1);
+    fdcomm.alpha_DL = 0.05*ones(fdcomm.DL_num,1);
+    radar.alpha_r = (1-0.1*fdcomm.UL_num-0.05*fdcomm.DL_num)/radar.Rx*ones(radar.Rx,1);
+end
+
+
+if radar_comm.isCollaborate
     radar_comm.Jr = [eye(radar.Tx);zeros(fdcomm.BSTx,radar.Tx)];
     radar_comm.JB = [zeros(radar.Tx,fdcomm.BSTx);eye(fdcomm.BSTx)];  
     M = radar.Tx + fdcomm.BSTx;
 else
-    radar_comm.Jr = eye(radar.Tx);
-    radar_comm.JB = 0;
     M = radar.Tx;
+    radar_comm.Jr = eye(radar.Tx);
+    radar_comm.JB = zeros(M,fdcomm.BSTx);
 end
+radar.total_Tx = M;
 JH = cell(radar.codelength,1);
 for k = 1:radar.codelength
        JH{k,1} = [zeros((k-1)*M,M);eye(M);zeros((radar.codelength-k)*M,M)];
@@ -111,9 +86,10 @@ radar.noise_power = F_radar*0.001*10^(Lp/10)*Bw;
 radar.Power = 10^(radar.SNR/10)*radar.noise_power*ones(radar.Tx,1);
 radar.clutter_power = 10^(radar.CNR/10)*radar.noise_power;
 %% Alternating optimization
-radar.iota_max = 8;% algorithm 3
-fdcomm.tu_max = 7; % algorithm 1 max number of iterations to execute the UL subgradient method
-fdcomm.td_max = 7; % algorithm 2 % max number of iterations to execute the DL suggradient method
+radar.ell_max = systemCfg.Algorithms.BCD_AP_MRMC_Iterations;
+radar.iota_max = systemCfg.Algorithms.WMMSE_MRMC_Iterations;
+fdcomm.tu_max = systemCfg.Algorithms.Subgradient_Iterations; % algorithm 1 max number of iterations to execute the UL subgradient method
+fdcomm.td_max = systemCfg.Algorithms.Subgradient_Iterations; % algorithm 2 % max number of iterations to execute the DL suggradient method
 %% Subgradient method Algorithm 1 & 2
 fdcomm.lambda_UL = ones(fdcomm.UL_num,radar.codelength);
 fdcomm.lambda_DL = ones(radar.codelength,1);
@@ -170,3 +146,14 @@ for nr = 1:radar.Rx
     R_Zr(:,:,nr) = radar.noise_power*eye(radar.codelength);
 end
 cov.noise = R_Zr;
+%% Channel initializations
+fdcomm.BBchannel = zeros(fdcomm.BSRx,fdcomm.BSTx);
+fdcomm.ULDLchannels = cell(fdcomm.UL_num,fdcomm.DL_num);
+for ii = 1:fdcomm.UL_num
+    for jj = 1:fdcomm.DL_num
+        fdcomm.ULDLchannel{ii,jj} = zeros(fdcomm.DL_UE_Ant(jj),fdcomm.UL_UE_Ant(ii));
+    end
+end
+radar_comm.Bmr = zeros(fdcomm.BSRx,radar.codelength,radar.Rx);
+
+end

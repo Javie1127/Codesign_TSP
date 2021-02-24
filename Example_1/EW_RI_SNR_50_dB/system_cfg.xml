@@ -1,9 +1,9 @@
 <SystemCfg>
 <System_Parameters>
     <RAND_SEED>20781</RAND_SEED>
-    <Num_PRI>8</Num_PRI>
+    <Num_PRI>6</Num_PRI>
     <Num_Range_Cell>32</Num_Range_Cell><!-- Symbols -->    
-    <NUM_DROPS>5</NUM_DROPS>
+    <NUM_DROPS>1</NUM_DROPS>
     <System_Bandwidth>100</System_Bandwidth> <!-- in MHz-->
     <Noise_density>-174</Noise_density><!-- in dbM/Hz-->
     <Carrier_Frequency>3.6</Carrier_Frequency>
@@ -27,8 +27,8 @@
 <Antennas>
     <Num_UE_Antennas>2</Num_UE_Antennas>
     <Num_BS_Antennas>8</Num_BS_Antennas>
-    <Num_Radar_Txs>2</Num_Radar_Txs>
-    <Num_Radar_Rxs>2</Num_Radar_Rxs>
+    <Num_Radar_Txs>8</Num_Radar_Txs>
+    <Num_Radar_Rxs>4</Num_Radar_Rxs>
 </Antennas>
 <Powers>
     <SNR_DL>15</SNR_DL><!-- in dB--> 
@@ -55,14 +55,14 @@
     </FD>
     <DL>
         <isEnabled>0</isEnabled>
-        <isCollaborationEnabled>0</isCollaborationEnabled>
-        <Num_DL_UE>8</Num_DL_UE>
+        <isCollaborationEnabled>1</isCollaborationEnabled>
+        <Num_DL_UE>4</Num_DL_UE>
         <Num_UL_UE>0</Num_UL_UE>
     </DL>
     <UL>
-        <isEnabled>0</isEnabled>
+        <isEnabled>1</isEnabled>
         <Num_DL_UE>0</Num_DL_UE>
-        <Num_UL_UE>8</Num_UL_UE>
+        <Num_UL_UE>4</Num_UL_UE>
     </UL>
     <CodingSchemes>
         <Comm_Precoding_Scheme>Proposed</Comm_Precoding_Scheme> <!--NSP,Uniform,ZF-->
