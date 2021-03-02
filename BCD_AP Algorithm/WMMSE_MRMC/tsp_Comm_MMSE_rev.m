@@ -11,9 +11,10 @@ E_DL_star = cell(J,K);
 E_DL = cell(J,K);
 I_DL = zeros(J,K);
 xi_DL = cell(K,J);
+%xi_DL_new = cell(K,J);
 for k = 1:K
     for jj = 1 : J
-        alpha_dj = fdcomm.alpha_DL(jj);
+        %alpha_dj = fdcomm.alpha_DL(jj);
         d_DL_j = fdcomm.DLstream_num(jj);
         HBj = fdcomm.DLchannels{jj};
         R_DL_j_k = cov.total_DL{jj,k};
@@ -30,7 +31,8 @@ for k = 1:K
         E_DL_star{jj,k} = E_dj_k_star;
         E_DL{jj,k} = E_dj_k;
         %xi_DL{k,jj} = alpha_dj*U_dj_k'*W_dj_k*U_dj_k;
-        xi_DL{k,jj} = alpha_dj*U_dj_k'/E_dj_k_star*U_dj_k;
+        %xi_DL{k,jj} = alpha_dj*U_dj_k'/E_dj_k_star*U_dj_k;
+        %xi_DL_new{k,jj} = alpha_dj*trace(W_dj_k*E_dj_k);
     end
 end
 fdcomm.DL_WMMSE_RX = U_DL;
@@ -38,7 +40,7 @@ fdcomm.DL_weights = W_DL;
 fdcomm.DL_MMSE = E_DL_star;
 fdcomm.DL_MMSE_nop = E_DL;
 fdcomm.MI_DL = I_DL;
-fdcomm.xi_DL = xi_DL;
+%fdcomm.xi_DL = xi_DL;
 
 %% UL WMMSE
 I = fdcomm.UL_num;
@@ -50,9 +52,9 @@ E_UL = cell(I,K);
 I_UL = zeros(I,K);
 xi_UL = zeros(Nc,Nc,K);
 for k = 1:K
-    xi_UL_k = 0;
+    %xi_UL_k = 0;
     for ii = 1 : I
-        alpha_ui = fdcomm.alpha_UL(ii);
+        %alpha_ui = fdcomm.alpha_UL(ii);
         d_UL_i = fdcomm.ULstream_num(ii);
         HiB = fdcomm.ULchannels{ii};
         R_UL_i_k = cov.total_UL{ii,k};
@@ -69,9 +71,9 @@ for k = 1:K
 %        UL_rate(ii,k) = ...
 %             real(log2(det(nearestSPD(eye(d_UL_i)+nearestSPD(P_iB_k'*HiB'/R_in_i_k*HiB*P_iB_k)))));
         I_UL(ii,k) = real(log2(det(eye(d_UL_i)+ (U_ui_k*R_UL_i_k*U_ui_k')/(U_ui_k*R_in_i_k*U_ui_k'))));
-        xi_UL_k = xi_UL_k + alpha_ui*U_ui_k'/E_ui_k_star*U_ui_k;
+        %xi_UL_k = xi_UL_k + alpha_ui*U_ui_k'/E_ui_k_star*U_ui_k;
     end
-    xi_UL(:,:,k) = xi_UL_k;
+    %xi_UL(:,:,k) = xi_UL_k;
 end
 fdcomm.UL_WMMSE_RX = U_UL;
 fdcomm.UL_weights = W_UL;
