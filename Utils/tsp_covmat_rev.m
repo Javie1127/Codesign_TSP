@@ -10,23 +10,29 @@ R_IB = cov.UL;
 R_BB = cov.B2B;
 R_ULDL = cov.UL2DL;
 %% Covariances at radar Rxs
-Mr = radar.Tx; % Number of radar TX antennas
+%Mr = radar.Tx; % Number of radar TX antennas
 Nr = radar.Rx; % Number of radar RX antennas
 K = radar.codelength; % The length of the radar code; or the number of PRIs
-nt = radar.CUT_Idx; % CUT index 
+%nt = radar.CUT_Idx; % CUT index 
 A = radar.codematrix;
 R_rt_r = zeros(K,K,Nr);
 Sigma_c_r = radar.Clutter_channel_cov; % Clutter channel covariance matrix
 R_c_r = zeros(K,K,Nr);
 Sigma_rt_Nr = radar.Sigma_rt_Nr;
+S_tr_cell = cell(K,1);
+for k = 1:K
+    S_tr_cell{k,1} = A(k,:);
+end
+S_tr = blkdiag(S_tr_cell{:});
+cov.S_tr = S_tr;
 for nr = 1:Nr
     for m = 1:K
         a_m = A(m,:).';
         for l = 1:K
             a_l = A(l,:).';
             Sigma_rt_nr_m_l = Sigma_rt_Nr{m,l,nr};
-            R_rt_r(m,l,nr)=trace(a_m*a_l'*Sigma_rt_nr_m_l);
-            R_c_r(m,l,nr) = trace(a_m*a_l'*Sigma_c_r);
+            R_rt_r(m,l,nr)=abs(trace(a_m*a_l'*Sigma_rt_nr_m_l));
+            R_c_r(m,l,nr) = real(trace(a_m*a_l'*Sigma_c_r));
         end
     end
 end
@@ -48,7 +54,7 @@ if fdcomm.DL_num>0 % DL is enabled
         s_dj_k_nBm = 0;
         for jj = 1:J  
             P_Bj_k  = P_dJ{jj,k};
-            s_dj_k_nBm = P_Bj_k*D_DL{jj}(:,nt+n_Bm,k) + s_dj_k_nBm;
+            s_dj_k_nBm = P_Bj_k*D_DL{jj}(:,n_Bm,k) + s_dj_k_nBm;
         end
         S_Bm(:,k) = s_dj_k_nBm;
     end
@@ -60,16 +66,17 @@ if fdcomm.DL_num>0 % DL is enabled
             for l = 1:K
                 S_Bm_l = S_Bm(:,l);
                 Sigma_Bm_nr_m_l = Sigma_Bm_Nr{m,l,nr};
-                R_Bmr(m,l,nr)=trace(S_Bm_m*S_Bm_l'*Sigma_Bm_nr_m_l);
+                R_Bmr(m,l,nr)=real(trace(S_Bm_m*S_Bm_l'*Sigma_Bm_nr_m_l));
             end
         end
     end
     cov.Bmr = R_Bmr;
+    cov.S_Bm = S_Bm;
     %% BS-target-radar
     if radar_comm.isCollaborate
         S_Bt = zeros(Mc,K);
         S_t_cell = cell(K,1);
-        S_t_K = zeros(Mc+Mr,K);
+        %S_t_K = zeros(Mc+Mr,K);
         for k = 1:K
             s_dj_k_one = 0;
             a_k = A(k,:).';
@@ -79,7 +86,7 @@ if fdcomm.DL_num>0 % DL is enabled
             end
             S_Bt(:,k) = s_dj_k_one;
             s_t_k = [a_k;s_dj_k_one];
-            S_t_K(:,k) = s_t_k;
+            %S_t_K(:,k) = s_t_k;
             S_t_cell{k,1} =s_t_k.';
         end
         % https://www.mathworks.com/matlabcentral/answers/46316-sparse-block-diagonal-matrix
@@ -94,13 +101,15 @@ if fdcomm.DL_num>0 % DL is enabled
                 for l = 1:K
                     S_Bt_l = S_Bt(:,l);
                     Sigma_Bt_nr_m_l = Sigma_Bt_Nr{m,l,nr};
-                    R_Btr(m,l,nr)=trace(S_Bt_m*S_Bt_l'*Sigma_Bt_nr_m_l);
+                    R_Btr(m,l,nr)=real(trace(S_Bt_m*S_Bt_l'*Sigma_Bt_nr_m_l));
                     R_tr(m,l,nr) = R_Btr(m,l,nr)+R_rt_r(m,l,nr);
                 end
             end
         end
         cov.Btr = R_Btr;
         cov.target2radar = R_tr;
+        cov.S_t_cell = S_t_cell;
+        cov.S_Bt = S_Bt;
     end
     %% radar to DL UEs
     R_rJ    = cell(J,1);
@@ -111,7 +120,10 @@ if fdcomm.DL_num>0 % DL is enabled
         H_rj = H_r_DL{jj};
         for k = 1:K
             ak = A(k,:).';
-            R_rj(:,:,k) = H_rj*(ak*ak')*H_rj';
+            R_rj_k = H_rj*(ak*ak')*H_rj';
+            d = eye(size(R_rj_k), 'logical');
+            R_rj_k(d) = real(diag(R_rj_k));
+            R_rj(:,:,k) = R_rj_k;
         end
         R_rJ{jj,1} = R_rj;
     end
@@ -124,7 +136,10 @@ if fdcomm.DL_num>0 % DL is enabled
         for ii = 1:J
             HBj = H_DL{ii}; %load the UL channel matrix
             PBj_k = P_dJ{ii,k};
-            R_BJ{ii,k} = HBj*(PBj_k*PBj_k')*HBj'; 
+            R_Bj_k = HBj*(PBj_k*PBj_k')*HBj'; 
+            d = eye(size(R_Bj_k), 'logical');
+            R_Bj_k(d) = real(diag(R_Bj_k));
+            R_BJ{ii,k} = R_Bj_k;
         end
     end
     cov.DL= R_BJ;
@@ -137,7 +152,10 @@ if fdcomm.DL_num>0 % DL is enabled
             for jjj = 1:length(jj_prime)
                 j_mui = jj_prime(jjj);
                 Pj_mui = P_dJ{j_mui,k};
-                R_j_MUI = HBj*(Pj_mui*Pj_mui')*HBj'+R_j_MUI;
+                R_jjj_MUI = HBj*(Pj_mui*Pj_mui')*HBj';
+                d = eye(size(R_jjj_MUI), 'logical');
+                R_jjj_MUI(d) = real(diag(R_jjj_MUI));
+                R_j_MUI = R_jjj_MUI +R_j_MUI;
             end
             R_MUI_DL{jj,k} = R_j_MUI;
         end
@@ -173,7 +191,7 @@ if fdcomm.UL_num>0
                 s_inr_m = S_Ur{m,ii,nr};
                for l = 1:K
                    s_inr_l = S_Ur{l,ii,nr};
-                   R_i_nr(m,l) = trace(s_inr_m*s_inr_l'*Sigma_U_Nr{m,l,ii,nr});
+                   R_i_nr(m,l) = real(trace(s_inr_m*s_inr_l'*Sigma_U_Nr{m,l,ii,nr}));
                end
             end
             R_U_Nr{ii,nr} = R_i_nr;
@@ -181,6 +199,7 @@ if fdcomm.UL_num>0
        end
        R_U_Nr_total(:,:,nr) = R_U_nr_temp;
     end
+    cov.S_Ur = S_Ur;
     cov.U_r = R_U_Nr;
     cov.UL2radar = R_U_Nr_total;
     %% radar to BS
@@ -188,7 +207,10 @@ if fdcomm.UL_num>0
     H_r_BS = radar_comm.radar2BSchannels;
     for k = 1:K 
         ak = A(k,:).';
-        R_rB(:,:,k) = H_r_BS*(ak*ak')*H_r_BS';
+        R_rB_k = H_r_BS*(ak*ak')*H_r_BS';
+        d = eye(size(R_rB_k), 'logical');
+        R_rB_k(d) = real(diag(R_rB_k));
+        R_rB(:,:,k) = R_rB_k;
     end
     cov.radar2BS = R_rB;
     %% UL UE - BS
@@ -201,7 +223,10 @@ if fdcomm.UL_num>0
         for ii = 1 : I
             H_iB = H_UL{ii}; %load the UL channel matrix
             PiB_k = P_uI{ii,k};
-            R_IB{ii,k} = H_iB*(PiB_k*PiB_k')*H_iB';
+            R_iB_k = H_iB*(PiB_k*PiB_k')*H_iB';
+            d = eye(size(R_iB_k), 'logical');
+            R_iB_k(d) = real(diag(R_iB_k));
+            R_IB{ii,k} = R_iB_k;
             R_sum = R_IB{ii,k}+R_sum;
         end
         R_sum_UL{k} = R_sum;
@@ -210,11 +235,14 @@ if fdcomm.UL_num>0
         R_sum_k = R_sum_UL{k};
         for ii = 1:I
             R_MUI_UL_ii_k = R_sum_k - R_IB{ii,k};
+            d = eye(size(R_MUI_UL_ii_k), 'logical');
+            R_MUI_UL_ii_k(d) = real(diag(R_MUI_UL_ii_k));
             R_MUI_UL{ii,k} = R_MUI_UL_ii_k;
         end
     end
     cov.MUI_UL = R_MUI_UL;
     cov.UL = R_IB;
+    cov.sum_UL = R_sum_UL;
 end
 %% FD enabled
 if fdcomm.UL_num>0 && fdcomm.DL_num > 0
@@ -223,7 +251,10 @@ if fdcomm.UL_num>0 && fdcomm.DL_num > 0
     R_BB = cell(K,1);
     % BS - BS 
     for k = 1:K
-        R_BB{k,1} = H_BB*(S_Bm(:,k)*S_Bm(:,k)')*H_BB';
+        R_BB_k = H_BB*(S_Bm(:,k)*S_Bm(:,k)')*H_BB';
+        d = eye(size(R_BB_k), 'logical');
+        R_BB_k(d) = real(diag(R_BB_k));
+        R_BB{k,1} = R_BB_k; 
     end
     cov.B2B = R_BB;
     % UL to DL
@@ -234,7 +265,10 @@ if fdcomm.UL_num>0 && fdcomm.DL_num > 0
             for ii = 1:I
                 Hij = H_UL_DL{ii,jj}; %load the UL channel matrix
                 PiB_k = P_uI{ii,k};
-                R_ULDL_temp = Hij*(PiB_k*PiB_k')*Hij'+R_ULDL_temp;
+                R_ij = Hij*(PiB_k*PiB_k')*Hij';
+                d = eye(size(R_ij), 'logical');
+                R_ij(d) = real(diag(R_ij));
+                R_ULDL_temp = R_ij +R_ULDL_temp;
             end
             R_ULDL{jj,kk} = R_ULDL_temp;
         end
