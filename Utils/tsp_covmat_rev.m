@@ -32,7 +32,7 @@ for nr = 1:Nr
             a_l = A(l,:).';
             Sigma_rt_nr_m_l = Sigma_rt_Nr{m,l,nr};
             R_rt_r(m,l,nr)=abs(trace(a_m*a_l'*Sigma_rt_nr_m_l));
-            R_c_r(m,l,nr) = real(trace(a_m*a_l'*Sigma_c_r));
+            R_c_r(m,l,nr) = abs(trace(a_m*a_l'*Sigma_c_r));
         end
     end
 end
@@ -66,7 +66,7 @@ if fdcomm.DL_num>0 % DL is enabled
             for l = 1:K
                 S_Bm_l = S_Bm(:,l);
                 Sigma_Bm_nr_m_l = Sigma_Bm_Nr{m,l,nr};
-                R_Bmr(m,l,nr)=real(trace(S_Bm_m*S_Bm_l'*Sigma_Bm_nr_m_l));
+                R_Bmr(m,l,nr)=abs(trace(S_Bm_m*S_Bm_l'*Sigma_Bm_nr_m_l));
             end
         end
     end
@@ -101,7 +101,7 @@ if fdcomm.DL_num>0 % DL is enabled
                 for l = 1:K
                     S_Bt_l = S_Bt(:,l);
                     Sigma_Bt_nr_m_l = Sigma_Bt_Nr{m,l,nr};
-                    R_Btr(m,l,nr)=real(trace(S_Bt_m*S_Bt_l'*Sigma_Bt_nr_m_l));
+                    R_Btr(m,l,nr)=abs(trace(S_Bt_m*S_Bt_l'*Sigma_Bt_nr_m_l));
                     R_tr(m,l,nr) = R_Btr(m,l,nr)+R_rt_r(m,l,nr);
                 end
             end
@@ -191,7 +191,7 @@ if fdcomm.UL_num>0
                 s_inr_m = S_Ur{m,ii,nr};
                for l = 1:K
                    s_inr_l = S_Ur{l,ii,nr};
-                   R_i_nr(m,l) = real(trace(s_inr_m*s_inr_l'*Sigma_U_Nr{m,l,ii,nr}));
+                   R_i_nr(m,l) = abs(trace(s_inr_m*s_inr_l'*Sigma_U_Nr{m,l,ii,nr}));
                end
             end
             R_U_Nr{ii,nr} = R_i_nr;
@@ -209,7 +209,7 @@ if fdcomm.UL_num>0
         ak = A(k,:).';
         R_rB_k = H_r_BS*(ak*ak')*H_r_BS';
         d = eye(size(R_rB_k), 'logical');
-        R_rB_k(d) = real(diag(R_rB_k));
+        R_rB_k(d) = abs(diag(R_rB_k));
         R_rB(:,:,k) = R_rB_k;
     end
     cov.radar2BS = R_rB;
@@ -225,7 +225,7 @@ if fdcomm.UL_num>0
             PiB_k = P_uI{ii,k};
             R_iB_k = H_iB*(PiB_k*PiB_k')*H_iB';
             d = eye(size(R_iB_k), 'logical');
-            R_iB_k(d) = real(diag(R_iB_k));
+            R_iB_k(d) = abs(diag(R_iB_k));
             R_IB{ii,k} = R_iB_k;
             R_sum = R_IB{ii,k}+R_sum;
         end
@@ -236,7 +236,7 @@ if fdcomm.UL_num>0
         for ii = 1:I
             R_MUI_UL_ii_k = R_sum_k - R_IB{ii,k};
             d = eye(size(R_MUI_UL_ii_k), 'logical');
-            R_MUI_UL_ii_k(d) = real(diag(R_MUI_UL_ii_k));
+            R_MUI_UL_ii_k(d) = abs(diag(R_MUI_UL_ii_k));
             R_MUI_UL{ii,k} = R_MUI_UL_ii_k;
         end
     end
@@ -253,7 +253,7 @@ if fdcomm.UL_num>0 && fdcomm.DL_num > 0
     for k = 1:K
         R_BB_k = H_BB*(S_Bm(:,k)*S_Bm(:,k)')*H_BB';
         d = eye(size(R_BB_k), 'logical');
-        R_BB_k(d) = real(diag(R_BB_k));
+        R_BB_k(d) = abs(diag(R_BB_k));
         R_BB{k,1} = R_BB_k; 
     end
     cov.B2B = R_BB;
@@ -267,7 +267,7 @@ if fdcomm.UL_num>0 && fdcomm.DL_num > 0
                 PiB_k = P_uI{ii,k};
                 R_ij = Hij*(PiB_k*PiB_k')*Hij';
                 d = eye(size(R_ij), 'logical');
-                R_ij(d) = real(diag(R_ij));
+                R_ij(d) = abs(diag(R_ij));
                 R_ULDL_temp = R_ij +R_ULDL_temp;
             end
             R_ULDL{jj,kk} = R_ULDL_temp;
