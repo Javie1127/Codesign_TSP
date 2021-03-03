@@ -24,7 +24,7 @@ for k = 1:K
         %E_dj_k = eye(fdcomm.DLstream_num(jj))-2*U_dj_k*HBj*P_dj_k+U_dj_k*R_DL_j_k*U_dj_k';
         R_in_dj = cov.in_DL{jj,k};
         %DL_rate(jj,k) = real(log2(det(nearestSPD(eye(d_DL_j)+nearestSPD(P_jd_k'*HBj'/R_in_dj*HBj*P_jd_k)))));
-        I_DL(jj,k) = real(log2(det(eye(d_DL_j)+ (U_dj_k*R_DL_j_k*U_dj_k')/(U_dj_k*R_in_dj*U_dj_k'))));
+        I_DL(jj,k) = abs(log2(det(eye(d_DL_j)+ (U_dj_k*R_DL_j_k*U_dj_k')/(U_dj_k*R_in_dj*U_dj_k'))));
         W_DL{jj,k} = W_dj_k;
         U_DL{jj,k} = U_dj_k;
         E_DL_star{jj,k} = E_dj_k_star;
@@ -69,7 +69,7 @@ for k = 1:K
         %E_UL{ii,k} = E_ui_k;
 %        UL_rate(ii,k) = ...
 %             real(log2(det(nearestSPD(eye(d_UL_i)+nearestSPD(P_iB_k'*HiB'/R_in_i_k*HiB*P_iB_k)))));
-        I_UL(ii,k) = real(log2(det(eye(d_UL_i)+ (U_ui_k*R_UL_i_k*U_ui_k')/(U_ui_k*R_in_i_k*U_ui_k'))));
+        I_UL(ii,k) = abs(log2(det(eye(d_UL_i)+ (U_ui_k*R_UL_i_k*U_ui_k')/(U_ui_k*R_in_i_k*U_ui_k'))));
         xi_UL_k = xi_UL_k + alpha_ui*U_ui_k'/E_ui_k_star*U_ui_k;
     end
     xi_UL(:,:,k) = xi_UL_k;
