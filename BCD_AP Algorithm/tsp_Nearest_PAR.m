@@ -14,9 +14,9 @@ for mr = 1:Mr
     sigma_mr = sqrt(c*rho_mr/d);
     a_mr_op = zeros(d,1);
     k = 0;
-    M = find(abs(z_nor_mr) <= sigma_mr);
+    M = 1:d;
     z_nor_mr_M = z_nor_mr(M);
-    while k < d
+    while k < d || k==d
         %if all(abs(z_nor_mr(M)) == 0)
         if all(abs(z_nor_mr_M)==0)
             for ii = 1:d
@@ -29,10 +29,10 @@ for mr = 1:Mr
             continue
         else
             gamma=sqrt((c-k*sigma_mr^2)/sum(abs(z_nor_mr_M).^2));
-            if any(gamma*abs(z_nor_mr_M)>sigma_mr)
+            if any(gamma*(z_nor_mr_M)>sigma_mr)
                 k = k+1;
-                [~,I] = maxk(z_nor_mr_M,k);
-                M(M==I)  = [];
+                [~,I] = maxk(abs(z_nor_mr_M),k);
+                M = setdiff(M,I);
                 z_nor_mr_M = z_nor_mr(M);
             else
                 for ii = 1:d
