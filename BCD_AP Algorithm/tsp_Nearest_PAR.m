@@ -12,47 +12,55 @@ for mr = 1:Mr
     z_nor_mr = normalize(z_mr,'norm',2);
     c = radar.Power(mr);
     sigma_mr = sqrt(c*rho_mr/d);
-    M = find(abs(z_nor_mr) == min(abs(z_nor_mr)));
     a_mr_op = zeros(d,1);
-    if min(abs(z_nor_mr)) == 0
-        for ii = 1:d
-            if ismember(ii,M) 
-                a_mr_op(ii) = sqrt((c-k*sigma_mr^2)/(d-k));
-            else
-                a_mr_op(ii) = sigma_mr*exp(1i*angle(z_nor_mr(ii)));
-            end
-        end
-    else
-        if numel(unique(z_nor_mr(M))) == 1
-            k = d - size(M,1);
-        else
-            zz = unique(z_nor_mr(M)); % unique elements with the least magnitude
-            KK = numel(zz);
-            num_KK = zeros(KK,1);
-            for kk = 1:KK
-                num_KK(kk) = numel(find(z_nor_mr == zz(kk)));
-            end
-            [KK_min,kk_min] = min(num_KK);
-            k = d - (numel(M)- KK_min);
-            ind_min = find(z_nor_mr == zz(kk_min));
-            M = intersect(M,ind_min);
-        end
-        gamma=sqrt((c-k*sigma_mr.^2)/norm(z_nor_mr(M))^2);
-        if gamma*z_nor_mr(M)>sigma_mr
-            for ii = 1:d
-                a_mr_op(ii) = sigma_mr*exp(1i*angle(z_nor_mr(ii)));
-            end
-            %M = find(z_nor_mr(1:d-k) == min(a_mr_star_mag(1:d-k)));
-        else
+    k = 0;
+    M = find(abs(z_nor_mr) <= sigma_mr);
+    z_nor_mr_M = z_nor_mr(M);
+    while k < d
+        %if all(abs(z_nor_mr(M)) == 0)
+        if all(abs(z_nor_mr_M)==0)
             for ii = 1:d
                 if ismember(ii,M) 
-                    a_mr_op(ii) = gamma*z_nor_mr(ii);
+                    a_mr_op(ii) = sqrt((c-k*sigma_mr^2)/(d-k));
                 else
                     a_mr_op(ii) = sigma_mr*exp(1i*angle(z_nor_mr(ii)));
                 end
             end
+            continue
+        else
+            gamma=sqrt((c-k*sigma_mr^2)/sum(abs(z_nor_mr_M).^2));
+            if any(gamma*abs(z_nor_mr_M)>sigma_mr)
+                k = k+1;
+                [~,I] = maxk(z_nor_mr_M,k);
+                M(M==I)  = [];
+                z_nor_mr_M = z_nor_mr(M);
+            else
+                for ii = 1:d
+                    if ismember(ii,M) 
+                        a_mr_op(ii) = gamma*z_nor_mr(ii);
+                    else
+                        a_mr_op(ii) = sigma_mr*exp(1i*angle(z_nor_mr(ii)));
+                    end
+                end
+                break
+            end
+%             if numel(unique(z_nor_mr(M))) == 1
+%                 k = d - size(M,1);
+%             else
+%                 zz = unique(z_nor_mr(M)); % unique elements with the least magnitude
+%                 KK = numel(zz);
+%                 num_KK = zeros(KK,1);
+%                 for kk = 1:KK
+%                     num_KK(kk) = numel(find(z_nor_mr == zz(kk)));
+%                 end
+%                 [KK_min,kk_min] = min(num_KK);
+%                 k = d - (numel(M)- KK_min);
+%                 ind_min = find(z_nor_mr == zz(kk_min));
+%                 M = intersect(M,ind_min);
+%             end
         end
-        radar.codematrix(:,mr) = a_mr_op;
     end
+    radar.codematrix(:,mr) = a_mr_op;
+end
 end
 
