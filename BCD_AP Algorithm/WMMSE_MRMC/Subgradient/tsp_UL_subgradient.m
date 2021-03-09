@@ -3,10 +3,12 @@ function [fdcomm_op, radar_op, cov_op] = tsp_UL_subgradient(fdcomm, radar_comm, 
 % update P_ui within the sub-gradient method
 tu_max = fdcomm.tu_max;
 t = 1;
-%lambda_ui_k_t = 10;
-mu_ui_k_t = fdcomm.mu_UL(ii,k);
-lambda_ui_k_t = fdcomm.lambda_UL(ii,k);
-%mu_ui_k_t = 1;
+lambda_ui_k_0 = 10;
+mu_ui_k_0 = 100;
+lambda_ui_k_t = lambda_ui_k_0;
+mu_ui_k_t = mu_ui_k_0;
+% mu_ui_k_t = fdcomm.mu_UL(ii,k);
+% lambda_ui_k_t = fdcomm.lambda_UL(ii,k);
 %% Initialization 
 fdcomm_temp = fdcomm; % to track 
 radar_temp = radar;
@@ -33,16 +35,17 @@ while t <= tu_max
     % fdcomm_temp tracks the instantaneous lambda, Piu,
     P_ui_k_t = fdcomm_temp.ULprecoders{ii,k}; 
     R_in_ui = cov_temp.in_UL{ii,k};
-    beta_i_k_t = 1/(t);
-    %beta_i_k_t = (1/t)/norm(P_U_i_max-abs(trace(P_ui_k_t*P_ui_k_t')));
+    %beta_i_k_t = 1/(t);
+    beta_i_k_t = (1/t)/norm(P_U_i_max-abs(trace(P_ui_k_t*P_ui_k_t')));
     epsilon_i_k_t = 1/t;
     R_ui_k_t = abs(log2(det((eye(d_UL_i)+P_ui_k_t'*HiB'/R_in_ui*HiB*P_ui_k_t))));
     %% update lambda and mu
     %epsilon_i_k_t = (1/t)/norm(P_U_i_max-abs(trace(P_ui_k_t*P_ui_k_t')));
     lambda_i_k_new = lambda_ui_k_t + beta_i_k_t*(abs(trace(P_ui_k_t*P_ui_k_t'))-P_U_i_max);
-    lambda_ui_k_t = max(lambda_i_k_new,0);
+    lambda_ui_k_t = max(min(lambda_i_k_new,lambda_ui_k_t),0);
     mu_i_k_new = mu_ui_k_t+epsilon_i_k_t*(R_UL-R_ui_k_t); 
-    mu_ui_k_t = max(mu_i_k_new,0);
+    %mu_ui_k_t = max(mu_i_k_new,0);
+    mu_ui_k_t = max(min(mu_i_k_new,mu_ui_k_t),0);
     fdcomm_temp.mu_UL(ii,k) = mu_ui_k_t;
     fdcomm_temp.lambda_UL(ii,k) = lambda_ui_k_t;
     %% Update PiB with new mu_i_k_t and lambda_i_k_t
@@ -54,9 +57,8 @@ while t <= tu_max
     Xi(t) = Xi_t;
     lambda_ui_k(t) = lambda_ui_k_t;
     mu_i_k(t) = mu_ui_k_t;
-    R_in_ui_temp = cov_temp.in_UL{ii,k};
     P_ui_k_temp =  fdcomm_temp.ULprecoders{ii,k};
-    R_ui_k_temp = abs(log2(det(eye(d_UL_i)+(P_ui_k_temp'*HiB'/(R_in_ui_temp)*HiB*P_ui_k_temp))));
+    R_ui_k_temp = abs(log2(det(eye(d_UL_i)+nearestSPD(P_ui_k_temp'*HiB'/(R_in_ui)*HiB*P_ui_k_temp))));
     if Xi_t < Xi_min && (R_UL-R_ui_k_temp)<=0 && abs(trace(P_ui_k_temp*P_ui_k_temp')) <= P_U_i_max    
         Xi_min = Xi_t;
         Xi_op(t) = Xi_t;
