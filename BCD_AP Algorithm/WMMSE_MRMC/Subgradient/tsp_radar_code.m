@@ -1,4 +1,4 @@
-function [radar,cov] = tsp_radar_code(fdcomm, radar, radar_comm, cov,k)
+function [radar] = tsp_radar_code(fdcomm, radar, radar_comm, cov,k)
 % radar code matrix update
 I = fdcomm.UL_num;
 J = fdcomm.DL_num;
@@ -16,8 +16,6 @@ for g = 1:J
 end
 
 %% Derivative of UL rate w.r.t a_k 
-d_UL = fdcomm.ULstream_num; % number of data streams of the UL UEs
-d_DL = fdcomm.DLstream_num; % number of data streams of the DL UEs
 napla_ak_R_UL_sum = 0;
 tilde_ar_k = radar.codematrix(k,:).';
 for ii = 1 : I
@@ -25,8 +23,9 @@ for ii = 1 : I
     R_in_iu_k = cov.in_UL{ii,k};
     H_iB = fdcomm.ULchannels{ii,1};
     P_iu_k = fdcomm.ULprecoders{ii,k};
-    napla_ak_R_UL_sum = napla_ak_R_UL_sum - mu_iu_k*H_rB'/R_in_iu_k*H_iB*P_iu_k/...
-        (eye(d_UL(ii))+(P_iu_k'*H_iB'/R_in_iu_k*H_iB*P_iu_k))*...
+    E_ui_k_star = fdcomm.UL_MMSE{ii,k};
+        %(eye(d_UL(ii))+(P_iu_k'*H_iB'/R_in_iu_k*H_iB*P_iu_k))*...
+    napla_ak_R_UL_sum = napla_ak_R_UL_sum - mu_iu_k*H_rB'/R_in_iu_k*H_iB*P_iu_k*E_ui_k_star*...
         P_iu_k'*H_iB'/R_in_iu_k*H_rB*tilde_ar_k;
 end
 napla_ak_R_DL_sum = 0;
@@ -36,16 +35,18 @@ for jj = 1:J
     R_in_jd_k = cov.in_DL{jj,k};
     H_Bj = fdcomm.DLchannels{jj,1};
     P_jd_k = fdcomm.DLprecoders{jj,k};
-    napla_ak_R_DL_sum = napla_ak_R_DL_sum-mu_jd_k*H_rj'/R_in_jd_k*H_Bj*P_jd_k/...
-        (eye(d_DL(jj))+(P_jd_k'*H_Bj'/R_in_jd_k*H_Bj*P_jd_k))*...
+    E_dj_k_star = fdcomm.DL_MMSE{jj,k};
+    napla_ak_R_DL_sum = napla_ak_R_DL_sum-mu_jd_k*H_rj'/R_in_jd_k*H_Bj*P_jd_k*E_dj_k_star*...
         P_jd_k'*H_Bj'/R_in_jd_k*H_rj*tilde_ar_k;
+        %(eye(d_DL(jj))+(P_jd_k'*H_Bj'/R_in_jd_k*H_Bj*P_jd_k))*...
+        
 end
 %% Cr_k
 Cr_k = napla_ak_R_DL_sum + napla_ak_R_UL_sum;
 Jr = radar_comm.Jr; 
 JH = radar_comm.JH;
 Sigma_c = radar.Clutter_channel_cov;
-Sigma_rt = radar.Sigma_h_tr;
+Sigma_rt = radar.Sigma_rt_Nr;
 Delta_h_rt = 0;
 m_r = 0;
 A = radar.codematrix;
@@ -57,21 +58,24 @@ for nr = 1:Nr
     Delta_h_rt_nr = 0;
     m_r_nr = 0;
     for m = 1:K
-        Sigma_rt_nr_m_k = Sigma_rt(m,k,nr);
-        xi_r_nr_k = radar.xi_r(m,k,nr);
+        Sigma_rt_nr_m_k = Sigma_rt{m,k,nr};
+        Sigma_c_nr_m_k = Sigma_c{m,k,nr};
+        xi_r_nr_m_k = radar.xi_r(m,k,nr);
         if m ~= k
-            xi_r_nr_k = radar.xi_r(m,k,nr);
-            m_r_nr = xi_r_nr_k*(Sigma_rt_nr_m_k+Sigma_c)*A(m,:).'+m_r_nr;
+            m_r_nr = xi_r_nr_m_k*(Sigma_rt_nr_m_k+Sigma_c_nr_m_k)*A(m,:).'+m_r_nr;
         end
         Delta_h_rt_nr = Delta_h_rt_nr+Sigma_rt_nr_m_k*Jr.'*JH{m}.'*Wrnr*urnr_k;
     end
     Delta_h_rt = Delta_h_rt + Delta_h_rt_nr;
     m_r = m_r + m_r_nr;
-    Sigma_rt_nr_k_k = Sigma_rt(k,k,nr);
-    F_r_k = xi_r_nr_k*(Sigma_rt_nr_k_k+Sigma_c)+F_r_k;
+    xi_r_nr_k_k = radar.xi_r(k,k,nr);
+    Sigma_rt_nr_k_k = Sigma_rt{k,k,nr};
+    Sigma_c_nr_k_k = Sigma_c{k,k,nr};
+    F_r_k = xi_r_nr_k_k*(Sigma_rt_nr_k_k+Sigma_c_nr_k_k)+F_r_k;
 end
 Cr_k = Cr_k-2*m_r+2*Delta_h_rt;
 % a_k = sylvester(Ar_k,Br_k,Cr_k);
-a_k = (kron(1,F_r_k\Ar_k)+kron(1,eye(Mr)))\Cr_k;
+%a_k = (kron(1,F_r_k\Ar_k)+kron(1,eye(Mr)))\((F_r_k)\Cr_k);
+a_k = (kron(1,Ar_k)+kron(1,F_r_k))\(Cr_k);
 radar.codematrix(k,:) = a_k.'; 
 end

@@ -25,13 +25,14 @@ for jj = 1 : J
     fdcomm.DL_MMSE_nop{jj,k} = eye(fdcomm.DLstream_num(jj))-2*U_dj_k*HBj*P_dj_k+ (U_dj_k*R_DL_j_k*U_dj_k');
 end
 St_nr = cov.S_tr;
+K = radar.codelength;
 for nr = 1:Nr
     Sigma_tnr = Sigma_tNr(:,:,nr);
     R_in_nr = cov.inr(:,:,nr);
     R_t_nr = cov.target2radar(:,:,nr);
     Urnr = radar.WMMSE_RX{nr,1};
     R_r_nr = R_in_nr + R_t_nr;
-    Ernr_star = Sigma_tnr*(eye(M)-(St_nr'/R_r_nr*St_nr*Sigma_tnr));
+    Ernr_star = Sigma_tnr*(eye(M)-(St_nr'/(R_r_nr)*St_nr*Sigma_tnr));
     % Ernr = nearestSPD(Sigma_tnr-2*Urnr*St_nr*Sigma_tnr + nearestSPD(Urnr*(St_nr*St_nr')*Urnr')+nearestSPD(Urnr*R_in_nr*Urnr'));
     Ernr = Sigma_tnr-Sigma_tnr*St_nr'*Urnr'-Urnr*St_nr*Sigma_tnr+ (Urnr*St_nr*Sigma_tnr*St_nr'*Urnr')...
         +(Urnr*R_in_nr*Urnr');

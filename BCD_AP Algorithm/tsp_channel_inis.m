@@ -19,13 +19,25 @@ h_rtr = zeros(K*Mr,Nr);
 Qr = zeros(Mr,K,Nr); % store Doppler info
 Alpha_r = zeros(Mr,Nr);
 % radar Tx-target-radar Rx
+%% Radar & Clutter
+%sigma_c = radar.clutter_power;
+rho = 0.5;
+clutter_power = 10^(radar.CNR/10);
+Sigma_c_Nr = cell(K,K,Nr);
+% sigma_c = 10^((radar.CNR-radar.SNR)/10);
+% Rho_c_r = zeros(Mr,Nr);
+% for nr = 1:Nr
+%    Rho_c_r(:,nr)=sqrt(sigma_c/2)*(randn(Mr,1)+1i*randn(Mr,1));
+% end
+% radar.Clutter_channel = Rho_c_r;
+% radar.Clutter_channel_cov = eye(Mr)*sigma_c;
 for nr = 1:Nr
     alpha_r_nr = sqrt(1/2)*(randn(Mr,1)+1i*randn(Mr,1));
     Alpha_r(:,nr) = alpha_r_nr;
     H_rt_nr = zeros(Mr,K);
+    f_mr_nr =  -1*rand(Mr,1)+0.5;  %[-0.5,0.5]
+    f_mr_t_nr = 0.15*f_mr_nr+0.25; % Normalized Doppler frequency
     for k = 1 : K
-        f_mr_nr =  -1*rand(Mr,1)+0.5;  %[-0.5,0.5]
-        f_mr_t_nr = 0.15*f_mr_nr+0.25; % Normalized Doppler frequency
         Qr(:,k,nr) = exp(1i*2*pi*(k-1).*f_mr_t_nr); % Doppler Domain Steering vector 
         h_rt_nr_k = alpha_r_nr.*Qr(:,k,nr); % Doppler Domain Steering vector 
         H_rt_nr(:,k) = h_rt_nr_k;
@@ -41,9 +53,11 @@ for nr = 1:Nr
             qr_l_nr = Qr(:,l,nr);
             Sigma_rt_nr_m_l = diag(qr_m_nr.*conj(qr_l_nr));
             Sigma_rt_Nr{m,l,nr} = Sigma_rt_nr_m_l;
+            Sigma_c_Nr{m,l,nr} = clutter_power*rho^(abs(m-l))*eye(Mr);
         end
     end
 end
+radar.Clutter_channel_cov = Sigma_c_Nr;
 radar.Sigma_rt_Nr= Sigma_rt_Nr;
 Sigma_t_Nr = Sigma_rt_Nr;
 radar.channlegains = Alpha_r;
@@ -76,11 +90,13 @@ if fdcomm.DL_num>0 % DL is enabled
     H_Bmr = zeros(Mc,K,Nr);
     Q_Bmr = zeros(K,Nr);
     Sigma_Bm_Nr = cell(K,K,Nr);
+    alpha_Bm = zeros(Nr,Mc);
     for nr = 1:Nr
         alpha_Bm_nr = sqrt(1/2)*(randn(Mc,1)+1i*randn(Mc,1));
+        alpha_Bm(nr,:) = alpha_Bm_nr.';
         H_Bm_nr = zeros(Mc,K);
+        f_Bm_nr = 0.15*(-1*rand(1)+0.5)+0.25; % Normalized Doppler frequency
         for k = 1 : K
-            f_Bm_nr = 0.15*(-1*rand(1)+0.5)+0.25; % Normalized Doppler frequency
             Q_Bmr(k,nr) = exp(1i*2*pi*(k-1)*f_Bm_nr);
             h_Bm_nr_k = alpha_Bm_nr*Q_Bmr(k,nr);
             H_Bm_nr(:,k) = h_Bm_nr_k;
@@ -100,19 +116,20 @@ if fdcomm.DL_num>0 % DL is enabled
     radar_comm.Sigma_Bm_Nr = Sigma_Bm_Nr;
     radar_comm.Bmr = H_Bmr;
     radar_comm.doppler_Bmr = Q_Bmr;
+    radar_comm.Bmr_channel_matrix = alpha_Bm;
     if radar_comm.isCollaborate
         H_Btr = zeros(Mc,K,Nr);
         H_tr = zeros(Mc+Mr,K,Nr);
         Q_Btr = zeros(K,Nr);
         theta_Bt = fdcomm.theta_BT;
         mc = 0:Mc-1;
-        a_theta_Bt = exp(1i*pi*sin(theta_Bt).*mc); %steering vector
+        a_theta_Bt = exp(1i*2*pi*sin(theta_Bt).*mc); %steering vector
         for nr = 1:Nr
             alpha_Bt_nr = sqrt(1/2)*(randn(1,1)+1i*randn(1,1));
             H_Bt_nr = zeros(Mc,K);
             H_t_nr = zeros(Mc+Mr,K);
+            f_Bt_nr = 0.15*(-1*rand(1)+0.5)+0.25; % Normalized Doppler frequency
             for k = 1 : K
-                f_Bt_nr = 0.15*(-1*rand(1)+0.5)+0.25; % Normalized Doppler frequency
                 Q_Btr(k,nr) = exp(1i*2*pi*(k-1)*f_Bt_nr);
                 h_Bt_nr_k = alpha_Bt_nr*a_theta_Bt'*Q_Btr(k,nr);
                 H_Bt_nr(:,k) = h_Bt_nr_k;
@@ -270,14 +287,7 @@ end
 
 radar_comm.radar2BSchannels = H_r_BS;
 
-%% Clutter
-sigma_c = radar.clutter_power;
-Rho_c_r = zeros(Mr,Nr);
-for nr = 1:Nr
-   Rho_c_r(:,nr)=sqrt(sigma_c/2)*(randn(Mr,1)+1i*randn(Mr,1));
-end
-radar.Clutter_channel = Rho_c_r;
-radar.Clutter_channel_cov = eye(Mr)*sigma_c;
+
 radar.total_channel = H_tr;
 radar.Sigma_t_Nr = Sigma_t_Nr;
 Sigma_h_tr = zeros(K*M,K*M,Nr);

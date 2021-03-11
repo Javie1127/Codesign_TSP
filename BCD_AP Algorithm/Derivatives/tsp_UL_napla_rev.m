@@ -11,9 +11,9 @@ xi_DL = fdcomm.xi_DL;
 term_1 = 0;
 for g = 1:J
     H_ig = fdcomm.ULDLchannels{ii,g};
-    term_1 = term_1 + H_ig'*xi_DL{k,g}*H_ig;
+    term_1 = term_1 + nearestSPD(H_ig'*xi_DL{k,g}*H_ig);
 end
-Au_i_k = H_iB'*xi_UL_k*H_iB+term_1;
+Au_i_k = nearestSPD(H_iB'*xi_UL_k*H_iB)+term_1;
 fdcomm.Au_fixed = Au_i_k;
 %% Bu
 Nr = radar.Rx;

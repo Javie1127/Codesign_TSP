@@ -3,59 +3,53 @@ function [fdcomm_op, radar_op] =...
 
 %------------------Algorithm 5 (BCD-AP MRMC)-------------------------------------------
 
- %% initializing channel models
-[fdcomm, radar, radar_comm] = tsp_channel_inis(fdcomm,radar,radar_comm);
-[fdcomm, radar, cov] = tsp_precoder_ini(radar,fdcomm,cov);
-%% Initializing the covariance matrices
-cov = tsp_covmat_rev(fdcomm,radar,radar_comm,cov);
-%% Initializing the MMSE matrices
-fdcomm = tsp_Comm_MMSE_rev(fdcomm,radar,cov);
-radar = tsp_radar_MMSE_rev(radar,cov);
-%% Initializing the performance measures
-radar = Xi_radar(radar);
-K = radar.codelength;
-for k = 1:K
-    fdcomm = Xi_comm_k(fdcomm,k);
-end
-
 ell_max = radar.ell_max;
 radar_op = radar;
 fdcomm_op = fdcomm;
+radar_ell = radar;
+fdcomm_ell = fdcomm;
+cov_ell = cov;
 I_total = zeros(ell_max,1);
 I_total_op = zeros(ell_max,1);
 I_DL_op = zeros(ell_max,1);
 I_UL_op = zeros(ell_max,1);
 I_radar_op = zeros(ell_max,1);
-I_UL = fdcomm.alpha_UL.*fdcomm.MI_UL;
-I_UL_max = sum(I_UL(:));
-I_DL = fdcomm.alpha_DL.*fdcomm.MI_DL;
-I_DL_max = sum(I_DL(:));
-I_radar_max = sum(radar.alpha_r.*radar.MI_radar);
-I_max = I_UL_max+I_DL_max+ I_radar_max;
+I_UL_max = 0;
+I_DL_max = 0;
+I_radar_max = 0;
+I_max = 0;
 ell = 1;
 %% BCD-AP Iteration
 while ell <= ell_max
-    [fdcomm, radar_ast] =...
-        tsp_WMMSE_MRMC(fdcomm, radar, radar_comm, cov);
-    % Calculate A^star
-    radar = tsp_Nearest_PAR(radar_ast);
-    % Update covariance matrices
-    cov = tsp_covmat_rev(fdcomm,radar,radar_comm,cov);
+    disp(ell);
+    [fdcomm_ell, radar_ell,cov_ell] =...
+        tsp_WMMSE_MRMC(fdcomm_ell, radar_ell, radar_comm, cov_ell);
+    if strcmp(radar_ell.coding_type,'Proposed')
+        % Calculate A^star
+        radar_ell = tsp_Nearest_PAR(radar_ell);
+        % Update covariance matrices
+        cov_ell = up_cov_radar(fdcomm_ell,radar_ell,cov_ell,radar_comm);
+    end
+%     cov_ell = tsp_covmat_rev(fdcomm_ell,radar_ell,radar_comm,cov_ell);
     % Update linear receivers
-    fdcomm = tsp_Comm_MMSE_rev(fdcomm, radar, cov);
-    radar = tsp_radar_MMSE_rev(radar, cov);
-    I_UL_ell = fdcomm.alpha_UL.*fdcomm.MI_UL;
-    I_DL_ell = fdcomm.alpha_DL.*fdcomm.MI_DL;
-    I_radar_ell = radar.alpha_r.*radar.MI_radar;
-    I_total(ell) = sum(I_UL_ell(:))+sum(I_DL_ell(:))+ sum(I_radar_ell(:));
+    fdcomm_ell = tsp_Comm_MMSE_rev(fdcomm_ell, radar_ell, cov_ell);
+    radar_ell = tsp_radar_MMSE_rev(radar_ell, cov_ell);
+    [fdcomm_ell, radar_ell] = tsp_MI(fdcomm_ell,radar_ell,cov_ell);
+    I_UL_ell = fdcomm_ell.MI_UL;
+    I_DL_ell = fdcomm_ell.MI_DL;
+    I_radar_ell = radar_ell.MI_radar;
+    I_total(ell) = fdcomm_ell.MI_total;
     if I_total(ell) > I_max
         I_total_op(ell) = I_total(ell);
         I_UL_op(ell) = sum(I_UL_ell(:));
+        I_UL_max = I_UL_op(ell);
         I_DL_op(ell) = sum(I_DL_ell(:));
+        I_DL_max = I_DL_op(ell);
         I_radar_op(ell) = sum(I_radar_ell);
+        I_radar_max = I_radar_op(ell);
         I_max = I_total(ell);
-        radar_op = radar;
-        fdcomm_op = fdcomm;
+        radar_op = radar_ell;
+        fdcomm_op = fdcomm_ell;
     else
         I_total_op(ell) = I_max;
         I_UL_op(ell) = I_UL_max;

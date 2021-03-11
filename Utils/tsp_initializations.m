@@ -17,7 +17,7 @@ fdcomm.UL_SNR = systemCfg.Powers.SNR_UL;
 fdcomm.DL_SNR = systemCfg.Powers.SNR_DL;
 fdcomm.Weights = systemCfg.Cases.Weights;
 fdcomm.Initializations = systemCfg.Cases.Initializations;
-
+fdcomm.symbol_num_per_frame = systemCfg.System_Parameters.Num_Symbols_per_frame;
 if systemCfg.Cases.FD.isEnabled
     fdcomm.UL_num = systemCfg.Cases.FD.Num_UL_UE;
     fdcomm.DL_num = systemCfg.Cases.FD.Num_DL_UE;
@@ -34,8 +34,8 @@ end
 
 fdcomm.UL_UE_Ant = systemCfg.Antennas.Num_UE_Antennas*ones(fdcomm.UL_num,1);
 fdcomm.DL_UE_Ant = systemCfg.Antennas.Num_UE_Antennas*ones(fdcomm.DL_num,1);
-fdcomm.ULstream_num = fdcomm.UL_UE_Ant;
-fdcomm.DLstream_num = fdcomm.DL_UE_Ant;
+fdcomm.ULstream_num = systemCfg.Antennas.Num_UL_Streams*ones(fdcomm.UL_num,1);
+fdcomm.DLstream_num = systemCfg.Antennas.Num_DL_Streams*ones(fdcomm.DL_num,1);
 fdcomm.theta_BT = systemCfg.Channel_Modeling.theta_Bt;
 %% Initializing Weights
 if strcmp(systemCfg.Cases.Weights,'Uniform')
@@ -43,9 +43,9 @@ if strcmp(systemCfg.Cases.Weights,'Uniform')
     fdcomm.alpha_UL = 1/(fdcomm.UL_num+fdcomm.DL_num+radar.Rx)*ones(fdcomm.UL_num,1);
     radar.alpha_r = 1/(fdcomm.UL_num+fdcomm.DL_num+radar.Rx)*ones(radar.Rx,1);
 elseif strcmp(systemCfg.Cases.Weights,'Radar')
-    fdcomm.alpha_UL = 0.1*ones(fdcomm.UL_num,1);
+    fdcomm.alpha_UL = 0.05*ones(fdcomm.UL_num,1);
     fdcomm.alpha_DL = 0.05*ones(fdcomm.DL_num,1);
-    radar.alpha_r = (1-0.1*fdcomm.UL_num-0.05*fdcomm.DL_num)/radar.Rx*ones(radar.Rx,1);
+    radar.alpha_r = (1-sum(fdcomm.alpha_UL)-sum(fdcomm.alpha_DL))/radar.Rx*ones(radar.Rx,1);
 end
 
 
@@ -72,29 +72,35 @@ Lp = systemCfg.System_Parameters.Noise_density;
 Bw = systemCfg.System_Parameters.System_Bandwidth;
 NF_BS = systemCfg.System_Parameters.BS_Noise_Figure;
 F_BS = 10^((NF_BS)/10);
-fdcomm.BS_noise_power = F_BS*0.001*10^(Lp/10)*Bw;
+fdcomm.BS_noise_power = F_BS*0.001*10^(Lp/10)*Bw*1e6;
+%fdcomm.BS_noise_power = 0.001;
 fdcomm.BS_power = 10^(fdcomm.DL_SNR/10)*fdcomm.BS_noise_power;
 
 NF_UE = systemCfg.System_Parameters.UE_Noise_Figure;
 F_UE = 10^((NF_UE)/10);
-fdcomm.UE_noise_power = F_UE*0.001*10^(Lp/10)*Bw;
-fdcomm.UL_power = 10^(fdcomm.UL_SNR/10)*fdcomm.BS_noise_power*ones(fdcomm.UL_num,1); % per UE power
+fdcomm.UE_noise_power = F_UE*0.001*10^(Lp/10)*Bw*1e6;
+%fdcomm.UE_noise_power = 0.001;
+fdcomm.UL_power = 10^(fdcomm.UL_SNR/10)*fdcomm.UE_noise_power*ones(fdcomm.UL_num,1); % per UE power
 
 NF_radar = systemCfg.System_Parameters.Radar_Noise_Figure;
 F_radar = 10^((NF_radar)/10);
-radar.noise_power = F_radar*0.001*10^(Lp/10)*Bw;
-radar.Power = 10^(radar.SNR/10)*radar.noise_power*ones(radar.Tx,1);
-radar.clutter_power = 10^(radar.CNR/10)*radar.noise_power;
+radar.noise_power = F_radar*0.001*10^(Lp/10)*Bw*1e6;
+%radar.noise_power = 0.001;
+radar.Power = 10^(radar.SNR/10).*radar.noise_power*ones(radar.Tx,length(radar.SNR));
+radar.clutter_power = 10^(radar.CNR/10)*radar.noise_power; 
 %% Alternating optimization
 radar.ell_max = systemCfg.Algorithms.BCD_AP_MRMC_Iterations;
 radar.iota_max = systemCfg.Algorithms.WMMSE_MRMC_Iterations;
 fdcomm.tu_max = systemCfg.Algorithms.Subgradient_Iterations; % algorithm 1 max number of iterations to execute the UL subgradient method
 fdcomm.td_max = systemCfg.Algorithms.Subgradient_Iterations; % algorithm 2 % max number of iterations to execute the DL suggradient method
+fdcomm.step_size_rules = systemCfg.Algorithms.step_size_rules;
 %% Subgradient method Algorithm 1 & 2
-fdcomm.lambda_UL = ones(fdcomm.UL_num,radar.codelength);
-fdcomm.lambda_DL = ones(radar.codelength,1);
-fdcomm.mu_UL = ones(fdcomm.UL_num,radar.codelength);
-fdcomm.mu_DL = ones(fdcomm.DL_num,radar.codelength);
+%fdcomm.lambda_UL = ones(fdcomm.UL_num,radar.codelength);
+%fdcomm.lambda_DL = ones(radar.codelength,1);
+fdcomm.lambda_UL = 10*ones(fdcomm.UL_num,radar.codelength);
+fdcomm.lambda_DL = 10*ones(radar.codelength,1);
+fdcomm.mu_UL = 10*ones(fdcomm.UL_num,radar.codelength);
+fdcomm.mu_DL = 10*ones(fdcomm.DL_num,radar.codelength);
 %% comm rate
 fdcomm.R_DL = systemCfg.Rates.DL;
 fdcomm.R_UL = systemCfg.Rates.UL;
@@ -155,5 +161,7 @@ for ii = 1:fdcomm.UL_num
     end
 end
 radar_comm.Bmr = zeros(fdcomm.BSRx,radar.codelength,radar.Rx);
-
+%% Cases
+fdcomm.precoder_type = systemCfg.Cases.CodingSchemes.Comm_Precoding_Scheme;
+radar.coding_type = systemCfg.Cases.CodingSchemes.Radar_Coding_Scheme;
 end

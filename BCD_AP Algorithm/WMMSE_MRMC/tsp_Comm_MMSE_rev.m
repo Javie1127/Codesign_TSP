@@ -24,7 +24,7 @@ for k = 1:K
         E_DL_star{jj,k} = E_dj_k_star;
         %E_DL{jj,k} = E_dj_k;
         %xi_DL{k,jj} = alpha_dj*U_dj_k'*W_dj_k*U_dj_k;
-        xi_DL{k,jj} = alpha_dj*U_dj_k'/(E_dj_k_star)*U_dj_k;
+        xi_DL{k,jj} = alpha_dj*nearestSPD(U_dj_k'/(E_dj_k_star)*U_dj_k);
         %xi_DL_new{k,jj} = alpha_dj*trace(W_dj_k*E_dj_k);
     end
 end
@@ -55,7 +55,7 @@ for k = 1:K
         U_UL{ii,k} = U_ui_k;
         E_UL_star{ii,k} = E_ui_k_star;
         %E_UL{ii,k} = E_ui_k;
-        xi_UL_k = xi_UL_k + alpha_ui*U_ui_k'/E_ui_k_star*U_ui_k;
+        xi_UL_k = xi_UL_k + alpha_ui*nearestSPD(U_ui_k'/E_ui_k_star*U_ui_k);
     end
     xi_UL(:,:,k) = xi_UL_k;
 end

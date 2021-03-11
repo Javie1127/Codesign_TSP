@@ -99,7 +99,7 @@ for nr = 1:Nr
     m_j_k_Bm = m_j_k_Bm + m_j_k_Bm_nr;
     m_j_k_t = m_j_k_t + m_j_k_t_nr;
 end
-fdcomm.Cd_fixed = 2*(Delta_h_Bt-m_j_k_t-m_j_k_Bm-m_g_k_t-m_g_k_Bm);
+fdcomm.Cd_fixed = Delta_h_Bt-m_j_k_t-m_j_k_Bm-m_g_k_t-m_g_k_Bm;
 
 
 end

@@ -31,7 +31,7 @@ for mr = 1:Mr
             gamma=sqrt((c-k*sigma_mr^2)/sum(abs(z_nor_mr_M).^2));
             if any(gamma*(z_nor_mr_M)>sigma_mr)
                 k = k+1;
-                [~,I] = maxk(abs(z_nor_mr_M),k);
+                [~,I] = max((z_nor_mr_M));
                 M = setdiff(M,I);
                 z_nor_mr_M = z_nor_mr(M);
             else

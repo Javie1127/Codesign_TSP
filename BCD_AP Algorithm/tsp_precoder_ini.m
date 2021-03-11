@@ -1,11 +1,11 @@
-function [fdcomm, radar, cov] = tsp_precoder_ini(radar,fdcomm,cov)
+function [fdcomm] = tsp_precoder_ini(fdcomm)
 %%%%-----------------------------------
 
-K = radar.codelength;
+K = fdcomm.symbol_num_per_frame;
 %% Precoding matrices initialization
 if fdcomm.UL_num>0
     I = fdcomm.UL_num;
-    P_UL = fdcomm.UL_power;
+    P_UL = 0.7*fdcomm.UL_power;
     P_UL_ini = cell(I,K);
     d_UL = fdcomm.ULstream_num;
     N_UL = fdcomm.UL_UE_Ant;
@@ -42,14 +42,14 @@ if fdcomm.UL_num>0
         end
     end
     fdcomm.ULprecoders = P_UL_ini;
-else
-    
 end
+
+
 if fdcomm.DL_num>0
     H_DL = fdcomm.DLchannels;
     J = fdcomm.DL_num;
     P_DL_ini = cell(J,K);
-    P_DL = fdcomm.BS_power;
+    P_DL = 0.7*fdcomm.BS_power;
     d_DL = fdcomm.DLstream_num;
     if strcmp(fdcomm.Initializations,'Random')
         % Initialization approach 2 cholesky decompostion of the diagonal covariance matrix
@@ -94,20 +94,6 @@ if fdcomm.DL_num>0
     fdcomm.DLprecoders = P_DL_ini;
 end
 
-Mr = radar.Tx;
-Pr = radar.Power;
-A_ini = zeros(K,Mr);
-for mr = 1:Mr
-    P_k = Pr(mr);
-    A_ini(:,mr) = sqrt(P_k/K);
-end
-radar.codematrix = A_ini;
-S_tr_cell = cell(K,1);
-for k = 1:K
-    S_tr_cell{k,1} = A_ini(k,:);
-end
-S_tr = blkdiag(S_tr_cell{:});
-cov.S_tr = S_tr;
 
 
 
