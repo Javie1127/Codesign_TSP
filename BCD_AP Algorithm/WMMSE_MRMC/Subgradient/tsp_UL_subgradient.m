@@ -4,7 +4,7 @@ function [fdcomm_op, radar_op, cov_op] = tsp_UL_subgradient(fdcomm, radar_comm, 
 tu_max = fdcomm.tu_max;
 t = 1;
 lambda_ui_k_0 = 10;
-mu_ui_k_0 = 100;
+mu_ui_k_0 = 10;
 lambda_ui_k_t = lambda_ui_k_0;
 mu_ui_k_t = mu_ui_k_0;
 % mu_ui_k_t = fdcomm.mu_UL(ii,k);
@@ -19,9 +19,7 @@ cov_op = cov;
 R_UL = fdcomm.R_UL; % UL minimum rate
 %% Compute the initial Xi_mse
 
-%Xi_min_k = fdcomm_temp.Xi_UL(k) + fdcomm_temp.Xi_DL(k) + sum(radar_temp.Xi_r);
-Xi_min = fdcomm_temp.Xi_WMMSE_total;
-% Xi_k = fdcomm.Xi_UL(k)+fdcomm.Xi_DL(k) + sum(radar.Xi_r);
+Xi_min = fdcomm_op.xi_UL(k)+fdcomm_op.xi_DL(k)+sum(radar_op.Xi_radar_Nr);
 % lambda_iu_k_t = fdcomm.lambda_UL(ii,k);
 P_U_i_max = fdcomm.UL_power(ii);
 d_UL_i = fdcomm.ULstream_num(ii);
@@ -33,23 +31,38 @@ lambda_ui_k = zeros(tu_max,1);
 while t <= tu_max
     % fdcomm tracks the optimal results
     % fdcomm_temp tracks the instantaneous lambda, Piu,
+    Xi_t = fdcomm_temp.xi_UL(k)+fdcomm_temp.xi_DL(k)+sum(radar_temp.Xi_radar_Nr);
     P_ui_k_t = fdcomm_temp.ULprecoders{ii,k}; 
     R_in_ui = cov_temp.in_UL{ii,k};
-    %beta_i_k_t = 1/(t);
-    beta_i_k_t = (1/t)/norm(P_U_i_max-abs(trace(P_ui_k_t*P_ui_k_t')));
-    epsilon_i_k_t = 1/t;
     R_ui_k_t = abs(log2(det((eye(d_UL_i)+P_ui_k_t'*HiB'/R_in_ui*HiB*P_ui_k_t))));
+    g_t = abs(trace(P_ui_k_t*P_ui_k_t'))-P_U_i_max;
+    q_t = R_UL-R_ui_k_t;
+    switch fdcomm.step_size_rules
+        case 'Square_summable'
+            epsilon_i_k_t = 1/t;
+            beta_i_k_t = 1/t;
+        case 'Nonsummable_diminishing'
+            epsilon_i_k_t = (1/sqrt(t))/(norm(q_t));
+            beta_i_k_t = (1/t)/(norm(g_t)+1e-3*P_U_i_max);
+        case 'Polyak'
+            gamma = 0.5;
+            epsilon_i_k_t = (Xi_t-Xi_min+gamma^t)/(norm(q_t))^2;
+            beta_i_k_t = (Xi_t-Xi_min+gamma^t)/(norm(g_t))^2;
+    end
+    tilde_P_ui_k = fdcomm_op.ULprecoders{ii,k};
+    
     %% update lambda and mu
     %epsilon_i_k_t = (1/t)/norm(P_U_i_max-abs(trace(P_ui_k_t*P_ui_k_t')));
-    lambda_i_k_new = lambda_ui_k_t + beta_i_k_t*(abs(trace(P_ui_k_t*P_ui_k_t'))-P_U_i_max);
-    lambda_ui_k_t = max(min(lambda_i_k_new,lambda_ui_k_t),0);
-    mu_i_k_new = mu_ui_k_t+epsilon_i_k_t*(R_UL-R_ui_k_t); 
-    %mu_ui_k_t = max(mu_i_k_new,0);
-    mu_ui_k_t = max(min(mu_i_k_new,mu_ui_k_t),0);
+    lambda_i_k_new = lambda_ui_k_t + beta_i_k_t*(g_t);
+    %lambda_ui_k_t = max(min(lambda_i_k_new,lambda_ui_k_t),0);
+    lambda_ui_k_t = max((lambda_i_k_new),0);
+    mu_i_k_new = mu_ui_k_t+epsilon_i_k_t*(q_t); 
+    mu_ui_k_t = max(mu_i_k_new,0);
+    %mu_ui_k_t = max(min(mu_i_k_new,mu_ui_k_t),0);
     fdcomm_temp.mu_UL(ii,k) = mu_ui_k_t;
     fdcomm_temp.lambda_UL(ii,k) = lambda_ui_k_t;
     %% Update PiB with new mu_i_k_t and lambda_i_k_t
-    fdcomm_temp = tsp_UL_precoders(k, ii, fdcomm_temp, cov_temp);
+    fdcomm_temp = tsp_UL_precoders(k, ii, fdcomm_temp, cov_temp,tilde_P_ui_k);
     %%  update the MMSE matrix E_ui_k and Xi_MSE
     cov_temp = update_cov_ui_k(fdcomm_temp,radar_temp,cov_temp,radar_comm,P_ui_k_t,ii,k);
     [fdcomm_temp,radar_temp] = update_Xi_WMMSE(fdcomm_temp, radar_temp,cov_temp);
