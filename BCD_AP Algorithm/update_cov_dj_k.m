@@ -18,21 +18,21 @@ for g = 1:J
     HBg = H_DL{g}; %load the UL channel matrix
     if g~= jj
         R_j_MUI_old = R_MUI_DL{g,k};
-        R_gj_MUI_old = nearestSPD(HBg*(P_dj_k_old*P_dj_k_old')*HBg');
-%         d_old =  eye(size(R_gj_MUI_old), 'logical');
-%         R_gj_MUI_old(d_old) = abs(diag(R_gj_MUI_old));
-        R_gj_MUI_new = nearestSPD(HBg*(P_dj_k*P_dj_k')*HBg');
-%         d_new = eye(size(R_gj_MUI_new), 'logical');
-%         R_gj_MUI_new(d_new) = abs(diag(R_gj_MUI_new));
+        R_gj_MUI_old =(HBg*(P_dj_k_old*P_dj_k_old')*HBg');
+        d_old =  eye(size(R_gj_MUI_old), 'logical');
+        R_gj_MUI_old(d_old) = abs(diag(R_gj_MUI_old));
+        R_gj_MUI_new = (HBg*(P_dj_k*P_dj_k')*HBg');
+        d_new = eye(size(R_gj_MUI_new), 'logical');
+        R_gj_MUI_new(d_new) = abs(diag(R_gj_MUI_new));
         R_j_MUI_new = R_j_MUI_old - R_gj_MUI_old+R_gj_MUI_new;
         R_MUI_DL{g,k} = R_j_MUI_new;
         R_in_DL{g,k} = R_in_DL{g,k} - R_j_MUI_old+R_j_MUI_new;
         R_total_DL{g,k} = R_total_DL{g,k} - R_j_MUI_old+R_j_MUI_new;
     else
         R_dj_k_old = R_BJ{g,k};
-        R_dj_k_new = nearestSPD(HBg*(P_dj_k*P_dj_k')*HBg');
-%         d_new = eye(size(R_dj_k_new), 'logical');
-%         R_dj_k_new(d_new) = abs(diag(R_dj_k_new));
+        R_dj_k_new = (HBg*(P_dj_k*P_dj_k')*HBg');
+        d_new = eye(size(R_dj_k_new), 'logical');
+        R_dj_k_new(d_new) = abs(diag(R_dj_k_new));
         R_BJ{g,k} = R_dj_k_new;
         R_total_DL{g,k} = R_total_DL{g,k} - R_dj_k_old + R_dj_k_new;
     end
@@ -98,7 +98,9 @@ if radar_comm.isCollaborate
                 R_Bt_nr(m,l) = (trace(S_Bt_m*S_Bt_l'*Sigma_Bt_nr_m_l));
             end
         end
-        R_Bt_nr = nearestSPD(R_Bt_nr);
+        %R_Bt_nr = (R_Bt_nr);
+        d_new = eye(size(R_Bt_nr), 'logical');
+        R_Bt_nr(d_new) = abs(diag(R_Bt_nr));
         R_Btr(:,:,nr)=R_Bt_nr;
     end
     R_tr = R_Btr + R_rt_r;
@@ -113,9 +115,9 @@ if fdcomm.UL_num > 0
     H_BB = fdcomm.BBchannel;
     R_BB = cov.B2B;
     R_BB_old = R_BB;
-    R_BB_new = nearestSPD(H_BB*(S_Bm(:,k)*S_Bm(:,k)')*H_BB');
-%     d_new = eye(size(R_BB_new), 'logical');
-%     R_BB_new(d_new) = abs(diag(R_BB_new));
+    R_BB_new = (H_BB*(S_Bm(:,k)*S_Bm(:,k)')*H_BB');
+    d_new = eye(size(R_BB_new), 'logical');
+    R_BB_new(d_new) = abs(diag(R_BB_new));
     R_BB{k,1} = R_BB_new;
     cov.B2B = R_BB;
     R_in_UL = cov.in_UL;
