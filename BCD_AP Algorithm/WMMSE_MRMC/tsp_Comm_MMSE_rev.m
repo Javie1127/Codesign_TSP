@@ -17,14 +17,14 @@ for k = 1:K
         R_DL_j_k = cov.total_DL{jj,k};
         P_dj_k = fdcomm.DLprecoders{jj,k};
         U_dj_k = P_dj_k'*HBj'/(R_DL_j_k);
-        E_dj_k_star = (eye(fdcomm.DLstream_num(jj))-(P_dj_k'*HBj'*(R_DL_j_k\(HBj*P_dj_k))));
+        E_dj_k_star = (eye(fdcomm.DLstream_num(jj))-(P_dj_k'*HBj'*(R_DL_j_k\HBj)*P_dj_k));
         W_dj_k = inv(E_dj_k_star);
         W_DL{jj,k} = W_dj_k;
         U_DL{jj,k} = U_dj_k;
         E_DL_star{jj,k} = E_dj_k_star;
         %E_DL{jj,k} = E_dj_k;
         %xi_DL{k,jj} = alpha_dj*U_dj_k'*W_dj_k*U_dj_k;
-        xi_DL{k,jj} = alpha_dj*(U_dj_k'/(E_dj_k_star)*U_dj_k);
+        xi_DL{k,jj} = alpha_dj*(U_dj_k'*(E_dj_k_star\U_dj_k));
         %xi_DL_new{k,jj} = alpha_dj*trace(W_dj_k*E_dj_k);
     end
 end
@@ -48,7 +48,7 @@ for k = 1:K
         R_UL_i_k = cov.total_UL{ii,k};
         P_ui_k = fdcomm.ULprecoders{ii,k};
         U_ui_k = P_ui_k'*HiB'/(R_UL_i_k);
-        E_ui_k_star = (eye(fdcomm.ULstream_num(ii))- (P_ui_k'*HiB'*(R_UL_i_k\HiB*P_ui_k)));
+        E_ui_k_star = (eye(fdcomm.ULstream_num(ii))- (P_ui_k'*HiB'*(R_UL_i_k\HiB)*P_ui_k));
         W_ui_k = inv(E_ui_k_star);
         %E_ui_k = eye(fdcomm.ULstream_num(ii))-2*U_ui_k*HiB*P_ui_k+ U_ui_k*R_in_i_k*U_ui_k';
         W_UL{ii,k} = W_ui_k;
