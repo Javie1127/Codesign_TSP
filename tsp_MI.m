@@ -19,7 +19,7 @@ for k = 1:K
         alpha_dj = fdcomm.alpha_DL(jj);
         R_DL_j_k = R_DL{jj,k};
         U_dj_k = U_DL{jj,k};
-        I_DL(jj,k) = alpha_dj*abs(log2(det(eye(d_DL_j)+ nearestSPD(U_dj_k*R_DL_j_k*U_dj_k')/nearestSPD(U_dj_k*R_in_dj*U_dj_k'))));
+        I_DL(jj,k) = alpha_dj*abs(log2(det(eye(d_DL_j)+ (U_dj_k*R_DL_j_k*U_dj_k')/(U_dj_k*R_in_dj*U_dj_k'))));
         %I_DL(jj,k) = abs(log2(det(eye(d_DL_j)+ (U_dj_k*R_DL_j_k*U_dj_k')/(U_dj_k*R_in_dj*U_dj_k'))));
     end
     for ii = 1:I
@@ -29,7 +29,7 @@ for k = 1:K
         R_UL_i_k = R_UL{ii,k};
         U_ui_k = U_UL{ii,k};
         I_UL(ii,k) = alpha_ui*abs(log2(det(eye(d_UL_i)+ ...
-            nearestSPD(U_ui_k*R_UL_i_k*U_ui_k')/nearestSPD(U_ui_k*R_in_i_k*U_ui_k'))));
+            (U_ui_k*R_UL_i_k*U_ui_k')/(U_ui_k*R_in_i_k*U_ui_k'))));
     end
 end
 Nr = radar.Rx;
@@ -50,7 +50,11 @@ for nr = 1:Nr
     R_tr_tilde = nearestSPD(Urnr*R_tr_nr*Urnr');
     %term_1 = (R_t_tilde)/(R_in_tilde);
     %ee = eye(size(Sigma_t_Nr,2)) + (R_r_tilde)/(R_in_tilde);
-    ee = abs(log2(det(eye(K*M)+R_tr_tilde/R_in_tilde)));
+    a1 = chol(R_in_tilde);
+    a1 = triu(a1);
+    R_in_tilde_inv = a1\(a1'\eye(size(R_in_tilde,1)));
+%     ee = abs(log2(det(eye(K*M)+R_tr_tilde/R_in_tilde)));
+    ee = abs(log2(det(eye(K*M)+R_tr_tilde*R_in_tilde_inv)));
     I_r_nr= alpha_nr*ee;
     %I_r_nr = alpha_nr*log2(det(R_r_tilde)/det(R_in_tilde));
     I_r(nr)=I_r_nr;
