@@ -25,13 +25,13 @@ for q = 1:I
     % mu_qu_k = fdcomm.mu_UL(q,k);
     if q == ii
         E_ui_star = fdcomm.UL_MMSE{q,1};
-        napla_Pui_R_UL{q,1} = H_iB'/R_in_uq_k*H_iB*tilde_P_iu_k*E_ui_star;
+        napla_Pui_R_UL{q,1} = H_iB'*(R_in_uq_k\H_iB)*tilde_P_iu_k*E_ui_star;
 %         napla_Pui_R_UL{q,1} = H_iB'/R_in_uq_k*H_iB*tilde_P_iu_k/...
 %           (eye(d_UL(q))+(P_qu_k'*H_iB'/R_in_uq_k*H_iB*tilde_P_iu_k));
     else
         H_qB = fdcomm.ULchannels{q,1};
         E_uq_star = fdcomm.UL_MMSE{q,1};
-        napla_Pui_R_UL{q,1} = -H_iB'/R_in_uq_k*H_qB*P_qu_k*E_uq_star*P_qu_k'*H_qB'/R_in_uq_k*H_iB*tilde_P_iu_k;
+        napla_Pui_R_UL{q,1} = -H_iB'*(R_in_uq_k\H_qB)*P_qu_k*E_uq_star*P_qu_k'*H_qB'*(R_in_uq_k\H_iB)*tilde_P_iu_k;
         %   /(eye(d_UL(q)) + nearestSPD(P_qu_k'*H_qB'/R_in_uq_k*H_qB*P_qu_k))*...
            
     end
@@ -44,8 +44,8 @@ for jj = 1:J
     R_in_dj_k = cov.in_DL{jj,k};
     P_dj_k = fdcomm.DLprecoders{jj,k};
     E_dj_star_k = fdcomm.DL_MMSE{jj,k};
-    term_2 = H_ij'/R_in_dj_k*H_Bj*P_dj_k*E_dj_star_k...
-        *P_dj_k'*H_Bj'/R_in_dj_k*H_ij;
+    term_2 = H_ij'*(R_in_dj_k\H_Bj)*P_dj_k*E_dj_star_k...
+        *P_dj_k'*H_Bj'*(R_in_dj_k\H_ij);
     %term_2 = nearestSPD(term_2);
 %     napla_Pui_R_DL{jj,1} = -H_ij'/R_in_dj_k*H_Bj*P_dj_k/...
 %         (eye(d_DL(jj))+term_1)*...
