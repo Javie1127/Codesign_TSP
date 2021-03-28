@@ -33,8 +33,8 @@ for q = 1:I
     R_in_qu_k = cov.in_UL{q,k};
     P_uq_k = fdcomm.ULprecoders{q,k};
     E_qu_k_star = fdcomm.UL_MMSE{q,k};
-    term_2 = nearestSPD(H_BB'/(R_in_qu_k)*H_qB*P_uq_k*E_qu_k_star*...
-        P_uq_k'*H_qB'/R_in_qu_k*H_BB);
+    term_2 =(H_BB'*(R_in_qu_k\H_qB)*P_uq_k*E_qu_k_star*...
+        P_uq_k'*H_qB'*(R_in_qu_k\H_BB));
     napla_P_dj_k_R_UL_sum = napla_P_dj_k_R_UL_sum - mu_qu_k*term_2*tilde_P_dj_k;
 end
 %% Derivatives of the DL achivable rate w.r.t. P_dj_k
@@ -45,7 +45,7 @@ for g = 1:J
     mu_gd_k = fdcomm.mu_DL(g,k);
     if g == jj
         E_dj_k_star = fdcomm.DL_MMSE{g,k};
-       napla_P_dj_k_R_DL_sum = napla_P_dj_k_R_DL_sum + mu_gd_k*nearestSPD(H_Bj'/(R_in_gd_k)*H_Bj)*tilde_P_dj_k*E_dj_k_star;
+       napla_P_dj_k_R_DL_sum = napla_P_dj_k_R_DL_sum + mu_gd_k*(H_Bj'*(R_in_gd_k\H_Bj))*tilde_P_dj_k*E_dj_k_star;
          %(eye(d_DL(g))+tilde_P_dj_k'*H_Bj'/(R_in_gd_k)*H_Bj*tilde_P_dj_k);
 %         napla_P_dj_k_R_DL_sum = napla_P_dj_k_R_DL_sum + mu_gd_k*(H_Bj'/(R_in_gd_k)*H_Bj)*tilde_P_dj_k*...
 %           pinv(eye(d_DL(g))+tilde_P_dj_k'*H_Bj'/(R_in_gd_k)*H_Bj*tilde_P_dj_k);
@@ -53,8 +53,8 @@ for g = 1:J
         H_Bg = fdcomm.DLchannels{g,1};
         P_dg_k = fdcomm.DLprecoders{g,k};
         E_dg_k_star = fdcomm.DL_MMSE{g,k};
-        napla_P_dj_k_R_DL_sum = napla_P_dj_k_R_DL_sum - mu_gd_k*nearestSPD(H_Bg'/(R_in_gd_k)*H_Bg)*P_dg_k*E_dg_k_star*...
-           P_dg_k'*H_Bg'/R_in_gd_k*H_Bg*tilde_P_dj_k;
+        napla_P_dj_k_R_DL_sum = napla_P_dj_k_R_DL_sum - mu_gd_k*(H_Bg'*(R_in_gd_k\H_Bg))*P_dg_k*E_dg_k_star*...
+           P_dg_k'*H_Bg'*(R_in_gd_k\H_Bg)*tilde_P_dj_k;
     end
 end
 Cd = napla_P_dj_k_R_DL_sum + napla_P_dj_k_R_UL_sum + fdcomm.Cd_fixed;
