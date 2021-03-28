@@ -14,8 +14,10 @@ for nr = 1 : Nr
     %R_in_nr = R_in(:,:,nr);
     R_r_nr = R_r(:,:,nr);
     Urnr = Sigma_tnr*S_tr'/ R_r_nr;
-    Ernr_star = nearestSPD(Sigma_tnr-nearestSPD(Sigma_tnr*S_tr'/(R_r_nr)*S_tr*Sigma_tnr));
-    Wrnr = inv(Ernr_star);
+    Ernr_star = nearestSPD(Sigma_tnr-(Sigma_tnr*S_tr'*((R_r_nr\S_tr)*Sigma_tnr)));
+%     d_new = eye(size(Ernr_star), 'logical');
+%     Ernr_star(d_new) = abs(diag(Ernr_star));
+    Wrnr = nearestSPD(inv_chol(Ernr_star));
     radar.WMMSE_weights{nr,1} = Wrnr;
     radar.WMMSE_RX{nr,1}= Urnr;
     radar.MMSE{nr,1} = Ernr_star;
@@ -29,8 +31,8 @@ for nr = 1 : Nr
             urnr_m = Urnr(:,m);
             %xi_r(m,k,nr) = alpha_nr*urnr_m.'*Wrnr*conj(urnr_k);
             %xi_r(m,k,nr) =trace(urnr_m.'*Wrnr.'*conj(urnr_k));
-            xi_r(m,k,nr) =urnr_k'/(Ernr_star)*urnr_m;
-            %xi_r(m,k,nr) =urnr_k'*(Wrnr)*urnr_m;
+%             xi_r(m,k,nr) =urnr_k'/(Ernr_star)*urnr_m;
+            xi_r(m,k,nr) =urnr_k'*(Wrnr)*urnr_m;
         end
     end
     xi_r(:,:,nr) = alpha_nr*xi_r(:,:,nr);
