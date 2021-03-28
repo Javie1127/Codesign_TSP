@@ -7,7 +7,6 @@ J = fdcomm.DL_num;
 napla_Pui_R_UL_sum = 0;
 napla_Pui_R_DL_sum = 0;
 d_UL = fdcomm.ULstream_num; % number of data streams of the UL UE
-d_DL = fdcomm.DLstream_num;
 H_iB = fdcomm.ULchannels{ii,1};
 if nargin == 4
     tilde_P_iu_k = fdcomm.ULprecoders{ii,k}; % being updated
@@ -47,7 +46,7 @@ for jj = 1:J
     E_dj_star_k = fdcomm.DL_MMSE{jj,k};
     term_2 = H_ij'/R_in_dj_k*H_Bj*P_dj_k*E_dj_star_k...
         *P_dj_k'*H_Bj'/R_in_dj_k*H_ij;
-    term_2 = nearestSPD(term_2);
+    %term_2 = nearestSPD(term_2);
 %     napla_Pui_R_DL{jj,1} = -H_ij'/R_in_dj_k*H_Bj*P_dj_k/...
 %         (eye(d_DL(jj))+term_1)*...
 %         P_dj_k'*H_Bj'/R_in_dj_k*H_ij*tilde_P_iu_k;
