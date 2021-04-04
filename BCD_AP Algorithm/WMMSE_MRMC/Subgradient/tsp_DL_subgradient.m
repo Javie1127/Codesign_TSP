@@ -14,8 +14,8 @@ radar_op = radar;
 cov_op = cov;
 % lambda_d_k_t = fdcomm.lambda_DL(k);
 % mu_dj_k_t = fdcomm.mu_DL(jj,k);
-lambda_d_k_t = 10;
-mu_dj_k_t = 50;
+lambda_d_k_t = 1;
+mu_dj_k_t = 2;
 d_DL_j = fdcomm.DLstream_num(jj);
 HBj = fdcomm.DLchannels{jj};
 % R_in_dj = cov.in_DL{jj,k};
@@ -33,39 +33,46 @@ P_dg_k_sum = 0;
 for g = 1:J
     P_dg_k = fdcomm_temp.DLprecoders{g,k};
     if g ~= jj
-        P_dg_k_sum = abs(trace((P_dg_k*P_dg_k'))) + P_dg_k_sum;
+        P_dg_k_sum = real(trace((P_dg_k*P_dg_k'))) + P_dg_k_sum;
     end
 end
+P_dj_k_t = fdcomm_temp.DLprecoders{jj,k};
+P_B_t = P_dg_k_sum + real(trace((P_dj_k_t*P_dj_k_t')));
+R_in_dj = cov_temp.in_DL{jj,k};
+R_dj_k_t = real(log2(det(eye(d_DL_j)+(P_dj_k_t'*HBj'*(R_in_dj\HBj)*P_dj_k_t))));
 while t <= td_max
-    P_dj_k_t = fdcomm_temp.DLprecoders{jj,k};
-    P_B_t = P_dg_k_sum + abs(trace((P_dj_k_t*P_dj_k_t')));
+%     P_dj_k_t = fdcomm_temp.DLprecoders{jj,k};
+%     P_B_t = P_dg_k_sum + real(trace((P_dj_k_t*P_dj_k_t')));
     g_t = P_B_t-P_B_max;
-    R_in_dj = cov_temp.in_DL{jj,k};
-    R_dj_k_t = abs(log2(det(eye(d_DL_j)+(P_dj_k_t'*HBj'*(R_in_dj\(HBj*P_dj_k_t))))));
+%     R_in_dj = cov_temp.in_DL{jj,k};
+%     R_dj_k_t = real(log2(det(eye(d_DL_j)+(P_dj_k_t'*HBj'*(R_in_dj\HBj)*P_dj_k_t))));
     q_t = R_DL-R_dj_k_t;
-    switch fdcomm.step_size_rules_lambda
+%     fdcomm.step_size_rules_lambda = 'Nonsummable_diminishing';
+    switch fdcomm.DL_step_size_rules_lambda
         case 'Square_summable'
             beta_d_k_t = 1/(t);
         case 'Nonsummable_diminishing'
             beta_d_k_t = (1/sqrt(t))/(norm(g_t)+1e-3*P_B_max);
         case 'Polyak'
             gamma = 0.5;
-            beta_d_k_t = (Xi_t-Xi_min+gamma^t)/(0.5*(norm(g_t))^2);        
+            beta_d_k_t = (Xi_t-Xi_min)/((norm(g_t))^2);        
     end
-    switch fdcomm.step_size_rules_mu
+%     fdcomm.step_size_rules_mu = 'Square_summable';
+    switch fdcomm.DL_step_size_rules_mu
         case 'Square_summable'
             epsilon_j_k_t = 0.1/(t+0.5);
         case 'Nonsummable_diminishing'
             epsilon_j_k_t = (1/sqrt(t))/(norm(q_t));
         case 'Polyak'
             gamma = 0.5;
-            epsilon_j_k_t = (Xi_t-Xi_min+gamma^t)/(norm(q_t))^2;
+            epsilon_j_k_t = (Xi_t-Xi_min)/(norm(q_t))^2;
     end
     % update lambda_k_t
     
-    lambda_k_d_temp = lambda_d_k_t + beta_d_k_t*(P_B_t-P_B_max);
+    lambda_d_k_temp = lambda_d_k_t + beta_d_k_t*(P_B_t-P_B_max);
     %lambda_k_d_temp = max(0,min(lambda_k_d_temp,lambda_d_k_t));
-    lambda_d_k_t = max(0,lambda_k_d_temp);
+%     lambda_k_d_temp = lambda_d_k_t + 0.5/P_B_max*(P_B_t-P_B_max);
+    lambda_d_k_t = max(0,lambda_d_k_temp);
     fdcomm_temp.lambda_DL(k) = lambda_d_k_t;
     %% update mu_j_k_t
     
@@ -84,7 +91,8 @@ while t <= td_max
 %     E_dj_k_t = eye(fdcomm.DLstream_num(jj))-2*U_dj_k*HBj*P_dj_k_t+(U_dj_k*R_DL_j_k*U_dj_k');
 %     fdcomm_temp.DL_MMSE_nop{jj,k} = E_dj_k_t;
     cov_temp = update_cov_dj_k(fdcomm_temp,radar_temp,cov_temp,radar_comm,P_dj_k_t,jj,k);
-    [fdcomm_temp,radar_temp] = update_Xi_WMMSE_k(fdcomm_temp, radar_temp,cov_temp,k);
+    [fdcomm_temp,radar_temp] = update_Xi_WMMSE_DL_k(fdcomm_temp, radar_temp,cov_temp,k,jj,radar_comm);
+%     [fdcomm_temp,radar_temp] = update_Xi_WMMSE_k(fdcomm_temp, radar_temp,cov_temp,k);
     Xi_t = fdcomm_temp.Xi_WMMSE_total_k;
     %% update Xi_MSE
 %     fdcomm_temp = Xi_comm_k(fdcomm_temp, k);
@@ -93,10 +101,13 @@ while t <= td_max
     Xi(t) = Xi_t;
     lambda_j_k(t) = lambda_d_k_t;
     mu_j_k(t) = mu_dj_k_t;
-    P_dj_k_temp = fdcomm_temp.DLprecoders{jj,k};
-    power_temp = abs(trace((P_dj_k_temp*P_dj_k_temp'))) + P_dg_k_sum;
-    R_dj_k_t_temp = abs(log2(det(eye(d_DL_j)+(P_dj_k_temp'*HBj'*(R_in_dj\(HBj*P_dj_k_temp))))));
-    if Xi_t < Xi_min && power_temp <= P_B_max && R_dj_k_t_temp >= R_DL
+    P_dj_k_t = fdcomm_temp.DLprecoders{jj,k};
+    P_B_t = real(trace((P_dj_k_t*P_dj_k_t'))) + P_dg_k_sum;
+    R_dj_k_t = real(log2(det(eye(d_DL_j)+(P_dj_k_t'*HBj'*(R_in_dj\HBj)*P_dj_k_t))));
+    if isinf(R_dj_k_t)
+        break
+    end
+    if Xi_t < Xi_min && P_B_t < P_B_max && R_dj_k_t > R_DL
         Xi_min = Xi_t; 
         Xi_op(t) = Xi_t; 
         fdcomm_op = fdcomm_temp;
@@ -104,10 +115,6 @@ while t <= td_max
         cov_op = cov_temp;
     else
         Xi_op(t) = Xi_min;
-    end
-    if Xi_t>10^4*Xi_min
-%         disp(Xi_t);
-        break
     end
     t = t+1;
 end

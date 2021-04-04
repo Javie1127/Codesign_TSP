@@ -10,6 +10,10 @@ iota = 1;
 % Xi_mse_op = zeros(iota_max,1);
 % Xi_mse = zeros(iota_max,1);
 [fdcomm,radar] = update_Xi_WMMSE(fdcomm,radar,cov);
+% Xi_min = fdcomm.Xi_WMMSE_total;
+% fdcomm_WMMSE_op = fdcomm;
+% radar_WMMSE_op = radar;
+% cov_op = cov;
 while iota<= iota_max
     %disp(iota);
     for k = 1: K
@@ -22,12 +26,13 @@ while iota<= iota_max
             end
         end
         if strcmp(fdcomm.precoder_type,'Proposed') || strcmp(fdcomm.precoder_type,'Uniform')
-            %% DL precoder
+%             %% DL precoder
             for jj = 1 : J
                 %disp(['jj=',num2str(ii)])
                 [fdcomm] = tsp_DL_napla(k, jj, fdcomm, radar, radar_comm);
                 [fdcomm,radar,cov] = tsp_DL_subgradient(fdcomm, radar_comm, radar, cov, jj ,k);
             end
+%             [fdcomm,radar,cov] = tsp_DL_subgradient_lambda(fdcomm, radar_comm, radar, cov,k);
         end
         if strcmp(radar.coding_type,'Proposed')
             %% radar code 
@@ -38,5 +43,12 @@ while iota<= iota_max
         end
         
     end
+%     [fdcomm,radar]=update_Xi_WMMSE(fdcomm,radar_temp,cov);
+%     Xi_iota = fdcomm.Xi_WMMSE_total;
+%     if Xi_iota < Xi_min && Xi_iota == Xi_min
+%         fdcomm_WMMSE_op = fdcomm;
+%         radar_WMMSE_op = radar;
+%         cov_op = cov;
+%     end
     iota = iota + 1;
 end

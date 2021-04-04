@@ -29,12 +29,18 @@ Ad = fdcomm.Ad_fixed + fdcomm.lambda_DL(k)*eye(Mc);
 napla_P_dj_k_R_UL_sum = 0;
 for q = 1:I
     mu_qu_k = fdcomm.mu_UL(q,k);
+%     mu_qu_k =1;
     H_qB = fdcomm.ULchannels{q,1};
     R_in_qu_k = cov.in_UL{q,k};
     P_uq_k = fdcomm.ULprecoders{q,k};
     E_qu_k_star = fdcomm.UL_MMSE{q,k};
-    term_2 =(H_BB'*(R_in_qu_k\H_qB)*P_uq_k*E_qu_k_star*...
-        P_uq_k'*H_qB'*(R_in_qu_k\H_BB));
+    cc = chol(R_in_qu_k);
+    qq = qr(cc);
+    R_in_qu_k_inv = qq\(qq'\eye(size(R_in_qu_k,1)));
+%     term_2 =nearestSPD(H_BB'*(R_in_qu_k\H_qB)*P_uq_k*E_qu_k_star*...
+%         P_uq_k'*H_qB'*(R_in_qu_k\H_BB));
+    term_2 =nearestSPD(H_BB'*(R_in_qu_k_inv)*H_qB*P_uq_k*E_qu_k_star*...
+        P_uq_k'*H_qB'*(R_in_qu_k_inv)*H_BB);
     napla_P_dj_k_R_UL_sum = napla_P_dj_k_R_UL_sum - mu_qu_k*term_2*tilde_P_dj_k;
 end
 %% Derivatives of the DL achivable rate w.r.t. P_dj_k
@@ -43,6 +49,7 @@ H_Bj = fdcomm.DLchannels{jj,1};
 for g = 1:J
     R_in_gd_k = cov.in_DL{g,k};
     mu_gd_k = fdcomm.mu_DL(g,k);
+%     mu_gd_k = 0;
     if g == jj
         E_dj_k_star = fdcomm.DL_MMSE{g,k};
        napla_P_dj_k_R_DL_sum = napla_P_dj_k_R_DL_sum + mu_gd_k*(H_Bj'*(R_in_gd_k\H_Bj))*tilde_P_dj_k*E_dj_k_star;

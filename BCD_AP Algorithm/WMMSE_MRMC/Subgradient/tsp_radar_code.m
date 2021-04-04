@@ -2,7 +2,6 @@ function [radar] = tsp_radar_code(fdcomm, radar, radar_comm, cov,k)
 % radar code matrix update
 I = fdcomm.UL_num;
 J = fdcomm.DL_num;
-Mr = radar.Tx;
 K = radar.codelength;
 Nr = radar.Rx;
 H_rB = radar_comm.radar2BSchannels;
@@ -25,8 +24,8 @@ for ii = 1 : I
     P_iu_k = fdcomm.ULprecoders{ii,k};
     E_ui_k_star = fdcomm.UL_MMSE{ii,k};
         %(eye(d_UL(ii))+(P_iu_k'*H_iB'/R_in_iu_k*H_iB*P_iu_k))*...
-    napla_ak_R_UL_sum = napla_ak_R_UL_sum - mu_iu_k*H_rB'/R_in_iu_k*H_iB*P_iu_k*E_ui_k_star*...
-        P_iu_k'*H_iB'/R_in_iu_k*H_rB*tilde_ar_k;
+    napla_ak_R_UL_sum = napla_ak_R_UL_sum - mu_iu_k*H_rB'*(R_in_iu_k\H_iB)*P_iu_k*E_ui_k_star*...
+        P_iu_k'*H_iB'*(R_in_iu_k\H_rB)*tilde_ar_k;
 end
 napla_ak_R_DL_sum = 0;
 for jj = 1:J
@@ -36,8 +35,8 @@ for jj = 1:J
     H_Bj = fdcomm.DLchannels{jj,1};
     P_jd_k = fdcomm.DLprecoders{jj,k};
     E_dj_k_star = fdcomm.DL_MMSE{jj,k};
-    napla_ak_R_DL_sum = napla_ak_R_DL_sum-mu_jd_k*H_rj'/R_in_jd_k*H_Bj*P_jd_k*E_dj_k_star*...
-        P_jd_k'*H_Bj'/R_in_jd_k*H_rj*tilde_ar_k;
+    napla_ak_R_DL_sum = napla_ak_R_DL_sum-mu_jd_k*H_rj'*(R_in_jd_k\H_Bj)*P_jd_k*E_dj_k_star*...
+        P_jd_k'*H_Bj'*(R_in_jd_k\H_rj)*tilde_ar_k;
         %(eye(d_DL(jj))+(P_jd_k'*H_Bj'/R_in_jd_k*H_Bj*P_jd_k))*...
         
 end
@@ -55,6 +54,7 @@ for nr = 1:Nr
     Urnr = radar.WMMSE_RX{nr,1};
     urnr_k = Urnr(:,k);
     Wrnr = radar.WMMSE_weights{nr,1};
+%     Ernr_star = radar.MMSE{nr,1};
     Delta_h_rt_nr = 0;
     m_r_nr = 0;
     for m = 1:K
@@ -64,7 +64,7 @@ for nr = 1:Nr
         if m ~= k
             m_r_nr = xi_r_nr_m_k*(Sigma_rt_nr_m_k+Sigma_c_nr_m_k)*A(m,:).'+m_r_nr;
         end
-        Delta_h_rt_nr = Delta_h_rt_nr+Sigma_rt_nr_m_k*Jr.'*JH{m}.'*Wrnr*urnr_k;
+        Delta_h_rt_nr = Delta_h_rt_nr+Sigma_rt_nr_m_k*Jr.'*JH{m}.'*(Wrnr)*urnr_k;
     end
     Delta_h_rt = Delta_h_rt + Delta_h_rt_nr;
     m_r = m_r + m_r_nr;
