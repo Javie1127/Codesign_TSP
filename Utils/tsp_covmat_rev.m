@@ -39,8 +39,12 @@ for nr = 1:Nr
             R_c_nr(m,l) = trace(a_m*a_l'*Sigma_c_Nr{m,l,nr});
         end
     end
-    R_rt_nr = nearestSPD(R_rt_nr);
-    R_c_nr = nearestSPD(R_c_nr);
+    d = eye(size(R_rt_nr), 'logical');
+    R_rt_nr(d) = real(diag(R_rt_nr));
+%     R_rt_nr = nearestSPD(R_rt_nr);
+    d = eye(size(R_c_nr), 'logical');
+    R_c_nr(d) = real(diag(R_c_nr));
+%     R_c_nr = nearestSPD(R_c_nr);
     R_rt_r(:,:,nr) = R_rt_nr;
     R_c_r(:,:,nr) = R_c_nr;
     %R_c_r(:,:,nr) = A*Sigma_c_r*A';
@@ -79,7 +83,9 @@ if fdcomm.DL_num>0 % DL is enabled
                 R_Bm_nr(m,l) = trace(S_Bm_m*S_Bm_l'*Sigma_Bm_nr_m_l);
             end
         end
-        R_Bm_nr = nearestSPD(R_Bm_nr);
+        d = eye(size(R_Bm_nr), 'logical');
+        R_Bm_nr(d) = real(diag(R_Bm_nr));
+        %R_Bm_nr = nearestSPD(R_Bm_nr);
         R_Bmr(:,:,nr) = R_Bm_nr;
     end
     cov.Bmr = R_Bmr;
@@ -113,10 +119,12 @@ if fdcomm.DL_num>0 % DL is enabled
                 for l = 1:K
                     S_Bt_l = S_Bt(:,l);
                     Sigma_Bt_nr_m_l = Sigma_Bt_Nr{m,l,nr};
-                   R_Bt_nr(m,l) =(trace(S_Bt_m*S_Bt_l'*Sigma_Bt_nr_m_l));
+                    R_Bt_nr(m,l) =(trace(S_Bt_m*S_Bt_l'*Sigma_Bt_nr_m_l));
                 end
             end
-            R_Bt_nr = nearestSPD(R_Bt_nr);
+            d = eye(size(R_Bt_nr), 'logical');
+            R_Bt_nr(d) = real(diag(R_Bt_nr));
+%             R_Bt_nr = nearestSPD(R_Bt_nr);
             R_Btr(:,:,nr)=R_Bt_nr;
         end
         R_tr = R_Btr + R_rt_r;
@@ -135,10 +143,10 @@ if fdcomm.DL_num>0 % DL is enabled
         for k = 1:K
             ak = A(k,:).';
             R_rj_k = H_rj*(ak*ak')*H_rj';
-%             d = eye(size(R_rj_k), 'logical');
-%             R_rj_k(d) = real(diag(R_rj_k));
-            %R_rj(:,:,k) = R_rj_k;
-            R_rj(:,:,k)= nearestSPD(R_rj_k);
+            d = eye(size(R_rj_k), 'logical');
+            R_rj_k(d) = real(diag(R_rj_k));
+            R_rj(:,:,k) = R_rj_k;
+%             R_rj(:,:,k)= nearestSPD(R_rj_k);
         end
         R_rJ{jj,1} = R_rj;
     end
@@ -152,10 +160,10 @@ if fdcomm.DL_num>0 % DL is enabled
             HBj = H_DL{ii}; %load the UL channel matrix
             PBj_k = P_dJ{ii,k};
             R_Bj_k = HBj*(PBj_k*PBj_k')*HBj'; 
-%             d = eye(size(R_Bj_k), 'logical');
-%             R_Bj_k(d) = real(diag(R_Bj_k));
-%             R_BJ{ii,k} = R_Bj_k;
-            R_BJ{ii,k} = nearestSPD(R_Bj_k);
+            d = eye(size(R_Bj_k), 'logical');
+            R_Bj_k(d) = real(diag(R_Bj_k));
+            R_BJ{ii,k} = R_Bj_k;
+%             R_BJ{ii,k} = nearestSPD(R_Bj_k);
         end
     end
     cov.DL= R_BJ;
@@ -169,9 +177,9 @@ if fdcomm.DL_num>0 % DL is enabled
                 j_mui = jj_prime(jjj);
                 Pj_mui = P_dJ{j_mui,k};
                 R_jjj_MUI = HBj*(Pj_mui*Pj_mui')*HBj';
-%                 d = eye(size(R_jjj_MUI), 'logical');
-%                 R_jjj_MUI(d) = real(diag(R_jjj_MUI));
-                R_jjj_MUI = nearestSPD(R_jjj_MUI);
+                 d = eye(size(R_jjj_MUI), 'logical');
+                 R_jjj_MUI(d) = real(diag(R_jjj_MUI));
+                %R_jjj_MUI = nearestSPD(R_jjj_MUI);
                 R_j_MUI = R_jjj_MUI +R_j_MUI;
             end
             R_MUI_DL{jj,k} = R_j_MUI;
@@ -187,14 +195,12 @@ if fdcomm.UL_num>0
     Nc = fdcomm.BSRx;% Number of BS RX antennas
     % S_U_r
     nu = radar_comm.nu;
-    S_Ur = cell(K,I,Nr);
-    for nr = 1:Nr
-        for ii =1:I
-            for k = 1:K
-                P_ui_k = P_uI{ii,k};
-                d_ui_k = D_UL{ii}(:,nu,k);
-                S_Ur{k,ii,nr} = P_ui_k*d_ui_k;
-            end
+    S_Ur = cell(K,I);
+    for ii =1:I
+        for k = 1:K
+            P_ui_k = P_uI{ii,k};
+            d_ui_k = D_UL{ii}(:,nu,k);
+            S_Ur{k,ii} = P_ui_k*d_ui_k;
         end
     end
     Sigma_U_Nr = radar_comm.Sigma_U_Nr;
@@ -205,13 +211,15 @@ if fdcomm.UL_num>0
         for ii = 1:I
             R_i_nr = zeros(K,K);
             for m = 1:K
-                s_inr_m = S_Ur{m,ii,nr};
+                s_inr_m = S_Ur{m,ii};
                for l = 1:K
-                   s_inr_l = S_Ur{l,ii,nr};
+                   s_inr_l = S_Ur{l,ii};
                    R_i_nr(m,l) = (trace(s_inr_m*s_inr_l'*Sigma_U_Nr{m,l,ii,nr}));
                end
             end
-            R_i_nr = nearestSPD(R_i_nr);
+            d = eye(size(R_i_nr), 'logical');
+            R_i_nr(d) = real(diag(R_i_nr));
+            %R_i_nr = nearestSPD(R_i_nr);
             R_U_Nr{ii,nr} = R_i_nr;
             R_U_nr_temp = R_U_nr_temp + R_i_nr;
        end
@@ -226,10 +234,10 @@ if fdcomm.UL_num>0
     for k = 1:K 
         ak = A(k,:).';
         R_rB_k = H_r_BS*(ak*ak')*H_r_BS';
-%         d = eye(size(R_rB_k), 'logical');
-%         R_rB_k(d) = abs(diag(R_rB_k));
-%         R_rB(:,:,k) = R_rB_k;
-        R_rB(:,:,k) = nearestSPD(R_rB_k);
+         d = eye(size(R_rB_k), 'logical');
+         R_rB_k(d) = real(diag(R_rB_k));
+         R_rB(:,:,k) = R_rB_k;
+        %R_rB(:,:,k) = nearestSPD(R_rB_k);
     end
     cov.radar2BS = R_rB;
     %% UL UE - BS
@@ -243,9 +251,10 @@ if fdcomm.UL_num>0
             H_iB = H_UL{ii}; %load the UL channel matrix
             PiB_k = P_uI{ii,k};
             R_iB_k = H_iB*(PiB_k*PiB_k')*H_iB';
-%             d = eye(size(R_iB_k), 'logical');
-%             R_iB_k(d) = abs(diag(R_iB_k));
-            R_IB{ii,k} = nearestSPD(R_iB_k);
+             d = eye(size(R_iB_k), 'logical');
+             R_iB_k(d) = real(diag(R_iB_k));
+             R_IB{ii,k} = R_iB_k;
+%            R_IB{ii,k} = nearestSPD(R_iB_k);
             R_sum = R_IB{ii,k}+R_sum;
         end
         R_sum_UL{k} = R_sum;
@@ -254,8 +263,8 @@ if fdcomm.UL_num>0
         R_sum_k = R_sum_UL{k};
         for ii = 1:I
             R_MUI_UL_ii_k = R_sum_k - R_IB{ii,k};
-%             d = eye(size(R_MUI_UL_ii_k), 'logical');
-%             R_MUI_UL_ii_k(d) = abs(diag(R_MUI_UL_ii_k));
+            d = eye(size(R_MUI_UL_ii_k), 'logical');
+            R_MUI_UL_ii_k(d) = real(diag(R_MUI_UL_ii_k));
             R_MUI_UL{ii,k} = R_MUI_UL_ii_k;
         end
     end
@@ -271,9 +280,10 @@ if fdcomm.UL_num>0 && fdcomm.DL_num > 0
     % BS - BS 
     for k = 1:K
         R_BB_k = H_BB*(S_Bm(:,k)*S_Bm(:,k)')*H_BB';
-%         d = eye(size(R_BB_k), 'logical');
-%         R_BB_k(d) = abs(diag(R_BB_k));
-        R_BB{k,1} = nearestSPD(R_BB_k); 
+        d = eye(size(R_BB_k), 'logical');
+        R_BB_k(d) = real(diag(R_BB_k));
+        R_BB{k,1} = R_BB_k;
+%         R_BB{k,1} = nearestSPD(R_BB_k); 
     end
     cov.B2B = R_BB;
     % UL to DL
@@ -285,9 +295,10 @@ if fdcomm.UL_num>0 && fdcomm.DL_num > 0
                 Hij = H_UL_DL{ii,jj}; %load the UL channel matrix
                 PiB_k = P_uI{ii,k};
                 R_ij = Hij*(PiB_k*PiB_k')*Hij';
-%                 d = eye(size(R_ij), 'logical');
-%                 R_ij(d) = abs(diag(R_ij));
-                R_ULDL_temp = nearestSPD(R_ij) +R_ULDL_temp;
+                d = eye(size(R_ij), 'logical');
+                R_ij(d) = real(diag(R_ij));
+                R_ULDL_temp = R_ij +R_ULDL_temp;
+%                 R_ULDL_temp = nearestSPD(R_ij) +R_ULDL_temp;
             end
             R_ULDL{jj,kk} = R_ULDL_temp;
         end
@@ -312,11 +323,11 @@ if fdcomm.UL_num>0
     R_in_UL = cell(I,K);
     R_total_UL = cell(I,K);
     R_ZB = fdcomm.BS_noise_power*eye(Nc);
-    for ii = 1:I
-        for k = 1:K
+    for k = 1:K
+        R_BB_k = R_BB{k,1};
+        R_rB_k = R_rB(:,:,k);
+        for ii = 1:I
             R_MUI_i_k = R_MUI_UL{ii,k};
-            R_BB_k = R_BB{k,1};
-            R_rB_k = R_rB(:,:,k);
             R_iB_k = R_IB{ii,k};
             R_in_UL{ii,k} = R_MUI_i_k+ R_BB_k + R_rB_k + R_ZB;
             R_total_UL{ii,k} = R_in_UL{ii,k} + R_iB_k;

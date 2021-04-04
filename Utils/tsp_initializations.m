@@ -6,10 +6,13 @@ radar.codelength = systemCfg.System_Parameters.Num_PRI;
 radar.num_range_cell = systemCfg.System_Parameters.Num_Range_Cell;
 radar.gamma_r = systemCfg.Powers.radar_PAR; % PAR level
 radar.K_factor = systemCfg.Channel_Modeling.K_Rician_radar;
-radar.Rician_direct = systemCfg.Channel_Modeling.Rician_direct_radar;
+radar.Rician_direct_BS = systemCfg.Channel_Modeling.Rician_direct_radar_BS;
+radar.Rician_direct_DL = systemCfg.Channel_Modeling.Rician_direct_radar_DL;
+radar.Rician_radar_BS_coeff = systemCfg.Channel_Modeling.Rician_radar_BS_coeff;
+radar.Rician_radar_DL_coeff = systemCfg.Channel_Modeling.Rician_radar_DL_coeff;
 radar.SNR = systemCfg.Powers.SNR_radar;
 radar.CNR = systemCfg.Powers.CNR;
-radar.gamma_r = systemCfg.Powers.radar_PAR*ones(radar.Tx,1);
+radar.gamma_r = db2pow(systemCfg.Powers.radar_PAR)*ones(radar.Tx,1); % db to linear
 %% FD-only parameters
 fdcomm.BSTx = systemCfg.Antennas.Num_BS_Antennas;
 fdcomm.BSRx = systemCfg.Antennas.Num_BS_Antennas;
@@ -86,14 +89,18 @@ NF_radar = systemCfg.System_Parameters.Radar_Noise_Figure;
 F_radar = 10^((NF_radar)/10);
 radar.noise_power = F_radar*0.001*10^(Lp/10)*Bw*1e6;
 %radar.noise_power = 0.001;
-radar.Power = 10^(radar.SNR/10).*radar.noise_power*ones(radar.Tx,length(radar.SNR));
+% radar.Power = 10^(radar.SNR/10).*radar.noise_power*ones(radar.Tx,length(radar.SNR));
+radar.Power = 10^(radar.SNR/10).*radar.noise_power*ones(radar.Tx,1);
 radar.clutter_power = 10^(radar.CNR/10)*radar.noise_power; 
 %% Alternating optimization
 radar.ell_max = systemCfg.Algorithms.BCD_AP_MRMC_Iterations;
 radar.iota_max = systemCfg.Algorithms.WMMSE_MRMC_Iterations;
 fdcomm.tu_max = systemCfg.Algorithms.Subgradient_Iterations; % algorithm 1 max number of iterations to execute the UL subgradient method
 fdcomm.td_max = systemCfg.Algorithms.Subgradient_Iterations; % algorithm 2 % max number of iterations to execute the DL suggradient method
-fdcomm.step_size_rules = systemCfg.Algorithms.step_size_rules;
+fdcomm.UL_step_size_rules_lambda = systemCfg.Algorithms.UL_step_size_rules_lambda;
+fdcomm.UL_step_size_rules_mu = systemCfg.Algorithms.UL_step_size_rules_mu;
+fdcomm.DL_step_size_rules_lambda = systemCfg.Algorithms.DL_step_size_rules_lambda;
+fdcomm.DL_step_size_rules_mu = systemCfg.Algorithms.DL_step_size_rules_mu;
 %% Subgradient method Algorithm 1 & 2
 %fdcomm.lambda_UL = ones(fdcomm.UL_num,radar.codelength);
 %fdcomm.lambda_DL = ones(radar.codelength,1);
@@ -102,8 +109,13 @@ fdcomm.lambda_DL = 10*ones(radar.codelength,1);
 fdcomm.mu_UL = 10*ones(fdcomm.UL_num,radar.codelength);
 fdcomm.mu_DL = 10*ones(fdcomm.DL_num,radar.codelength);
 %% comm rate
-fdcomm.R_DL = systemCfg.Rates.DL;
-fdcomm.R_UL = systemCfg.Rates.UL;
+% fdcomm.R_DL = systemCfg.Rates.DL;
+% fdcomm.R_UL = systemCfg.Rates.UL;
+%% achivable rate
+SINR_DL = db2pow(fdcomm.BS_power)/fdcomm.DL_num/(sum(db2pow(fdcomm.UL_power))+sum(radar.Power)+fdcomm.UE_noise_power(1));
+fdcomm.R_DL = 0.5*log2(1+SINR_DL);
+SINR_UL = db2pow(fdcomm.UL_power(1))/(db2pow(fdcomm.BS_power)+sum(radar.Power)+fdcomm.BS_noise_power);
+fdcomm.R_UL = 0.5*log2(1+SINR_UL);
 %% Radar comm symbols
 radar_comm.n_Bm = systemCfg.Radar_Comm_symbols.n_Bm;
 radar_comm.nu = systemCfg.Radar_Comm_symbols.n_u;
